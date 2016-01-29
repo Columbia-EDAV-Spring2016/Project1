@@ -11,7 +11,7 @@ Load the data:
 setwd('/Users/bobminnich/Documents/Columbia/Courses/DataVisualization/EDAV_Project1')
 
 #Load CSV file into Data Frame
-df = read.csv("Survey+Response.csv", stringsAsFactors = FALSE)
+df = read.csv("Survey+Response.csv")
 
 col.list = c("Matlab", "R", "Github", "Excel", "SQL", "RStudio", "ggplot2", "shell (terminal / command line)", "C/C++", "Python", "Stata", "LaTeX", "XML", "Web: html css js", "google drive (formerly docs)", "Sweave/knitr","dropbox", "SPSS", "regular expressions (grep)" )
 
