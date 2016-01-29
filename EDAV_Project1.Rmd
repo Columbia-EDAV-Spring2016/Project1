@@ -1,0 +1,36 @@
+---
+title: "EDAV_Project1"
+author: "Team"
+date: "January 28, 2016"
+output: html_document
+---
+
+Load the data:
+```{r}
+#Set your working directory
+setwd('/Users/bobminnich/Documents/Columbia/Courses/DataVisualization/EDAV_Project1')
+
+#Load CSV file into Data Frame
+df = read.csv("Survey+Response.csv", stringsAsFactors = FALSE)
+
+col.list = c("Matlab", "R", "Github", "Excel", "SQL", "RStudio", "ggplot2", "shell (terminal / command line)", "C/C++", "Python", "Stata", "LaTeX", "XML", "Web: html css js", "google drive (formerly docs)", "Sweave/knitr","dropbox", "SPSS", "regular expressions (grep)" )
+
+#Create colums initializing at 0
+df[,col.list] = 0
+
+for(i in col.list){
+  #Need an If Statement because of R vs RStudio. 
+    if(i == "R"){ 
+      #Use Reg expressions "R,|R$" which looks for "R," and for "R$" which means there is nothing after R (line 87 caused this issue)
+      fnd = "R,|R$"
+      #try to find fnd within the vector, return Row # if True
+      rows = grep(pattern = fnd, x = df$Experiences.with.tools)
+    }else{
+      #Same as above
+      fnd = paste(i, sep = "")
+      rows = grep(pattern = fnd, x = df$Experiences.with.tools, fixed = TRUE)
+      }
+    df[rows,i] = 1
+}
+```
+
