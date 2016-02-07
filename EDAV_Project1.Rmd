@@ -5,6 +5,13 @@ date: "January 28, 2016"
 output: html_document
 ---
 
+Import required packages
+(Also must install them if not already installed):
+```
+library('ggplot2')
+library('magrittr')
+```
+
 Load the data:
 ```{r}
 #Set your working directory
@@ -51,12 +58,6 @@ Load data:
 ```
 setwd('/Users/ianjohnson/Desktop/Columbia/EDAV/Project1') # Should remove?
 df = read.csv("edit_data_2.csv")
-```
-Import required packages
-(Also must install them if not already installed):
-```
-library('ggplot2')
-library('magrittr')
 ```
 Show a summary of the data:
 ```
