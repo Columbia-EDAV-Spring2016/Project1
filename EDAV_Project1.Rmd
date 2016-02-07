@@ -8,7 +8,7 @@ output: html_document
 Load the data:
 ```{r}
 #Set your working directory
-setwd('/Users/bobminnich/Documents/Columbia/Courses/DataVisualization/EDAV_Project1')
+setwd('/Users/ianjohnson/Desktop/Columbia/EDAV/Project1')
 
 #Load CSV file into Data Frame
 df = read.csv("Survey+Response.csv")
@@ -39,3 +39,32 @@ for(i in col.list){
     df_clean[rows,i] = 1
 }
 ```
+
+
+
+
+
+
+## Basic data summary
+## Data in edit_data_2.csv has shorter column headers, skill levels --> integers
+Load data:
+```
+setwd('/Users/ianjohnson/Desktop/Columbia/EDAV/Project1') # Should remove?
+df = read.csv("edit_data_2.csv")
+```
+Import required packages
+(Also must install them if not already installed):
+```
+library('ggplot2')
+library('magrittr')
+```
+Show a summary of the data:
+```
+summary(df)
+```
+Plot R experience level against Github experience level:
+```
+hist(df$r_data_modeling_experience)
+hist(df$github_experience)
+```
+
