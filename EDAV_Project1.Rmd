@@ -38,4 +38,32 @@ for(i in col.list){
       }
     df_clean[rows,i] = 1
 }
+Program <- rep(0,114)
+for(i in 1:114){
+  if(df_clean$Program[i] %in% c("Data Science", "IDSE (master)", "Ms in ds", "MSDS")){
+    Program[i] <- "Data_Science_Master"
+}
+  else if(df_clean$Program[i] == "Data Science Certification"){
+    Program[i] <- "Data_Science_Certification"
+  }
+  else if(df_clean$Program[i] == "Statistics (master)"){
+    Program[i] <- "Statistics_Master"
+  }
+  else{
+   Program[i] <- "Others"
+  }
+}
+df_clean$Program <- as.factor(Program)
+df_clean$Experiences.with.tools <- NULL
+df_clean$num_skills <- apply(df_clean[,11:30], 1, sum)
+names(df_clean)[c(3, 6:10)] <- names(edit_date)[c(4, 7:11)]
+df_clean[c(3, 6:10)] <- edit_date[c(4, 7:11)]
+df_clean$prof_skills <- apply(df_clean[,c(3, 6:10)], 1, sum)
+library('ggplot2')
+ggplot(df_clean, aes(x=num_skills, color = Program)) + geom_density()
+library('gcookbook')
+ggplot(df_clean,aes(x=Program, y=num_skills, color = Program)) + geom_violin(trim = FALSE) + geom_boxplot(width = 0.1, fill = "black") + stat_summary(fun.y = median, geom = "point")
+ggplot(df_clean, aes(x=prof_skills, color = Program)) + geom_density()
+ggplot(df_clean,aes(x=Program, y=prof_skills, color = Program)) + geom_violin(trim = FALSE) + geom_boxplot(width = 0.1, fill = "black") + stat_summary(fun.y = median, geom = "point")
+ggplot(df_clean, aes(x=num_skills, y=prof_skills)) + stat_density2d(aes(colour = ..level..)) + geom_point() + facet_wrap(~Program, scales  = "free")
 ```
