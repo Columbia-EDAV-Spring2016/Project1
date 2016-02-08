@@ -5,36 +5,37 @@ date: "January 28, 2016"
 output: html_document
 ---
 
-Import required packages
-(Also must install them if not already installed):
-```{r}
-library('ggplot2')
-library('magrittr')
-```
-
 Load the data:
 ```{r}
 #Set your working directory
-setwd('/Users/ianjohnson/Desktop/Columbia/EDAV/Project1')
+setwd('/Users/bobminnich/Documents/Columbia/Courses/DataVisualization/EDAV_Project1')
 
 #Load CSV file into Data Frame
 df = read.csv("Survey+Response.csv")
-```
 
-## Basic data summary
-##### Data in edit_data_2.csv has shorter column headers, skill levels --> integers
-Load data:
-```{r}
-setwd('/Users/ianjohnson/Desktop/Columbia/EDAV/Project1') # Should remove?
-df = read.csv("edit_data_2.csv")
-```
-Show a summary of the data:
-```{r}
-summary(df)
-```
-Plot R experience level against Github experience level:
-```{r}
-hist(df$r_data_modeling_experience)
-hist(df$github_experience)
-```
+col.list = c("Matlab", "R", "Github", "Excel", "SQL", "RStudio", "ggplot2", "shell (terminal / command line)", "C/C++", "Python", "Stata", "LaTeX", "XML", "Web: html css js", "google drive (formerly docs)", "Sweave/knitr","dropbox", "SPSS", "regular expressions (grep)", "lattice" )
 
+#Count Columns with NAs
+na.check = df%>%is.na() %>% apply(2,sum)
+
+#Remove NAs
+df_clean = df[,which(na.check==0)]
+
+#Create colums initializing at 0
+df_clean[,col.list] = 0
+
+for(i in col.list){
+  #Need an If Statement because of R vs RStudio. 
+    if(i == "R"){ 
+      #Use Reg expressions "R,|R$" which looks for "R," and for "R$" which means there is nothing after R (line 87 caused this issue)
+      fnd = "R,|R$"
+      #try to find fnd within the vector, return Row # if True
+      rows = grep(pattern = fnd, x = df_clean$Experiences.with.tools)
+    }else{
+      #Same as above
+      fnd = paste(i, sep = "")
+      rows = grep(pattern = fnd, x = df_clean$Experiences.with.tools, fixed = TRUE)
+      }
+    df_clean[rows,i] = 1
+}
+```

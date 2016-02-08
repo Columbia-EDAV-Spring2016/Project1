@@ -18,7 +18,7 @@ Load the data:
 setwd('/Users/ianjohnson/Desktop/Columbia/EDAV/Project1')
 
 #Load CSV file into Data Frame
-df = read.csv("Survey+Response.csv")
+df = read.csv("edit_data_2.csv")
 ```
 
 ## Basic data summary
@@ -34,7 +34,7 @@ summary(df)
 ```
 Plot R experience level against Github experience level:
 ```{r}
-hist(df$r_data_modeling_experience)
-hist(df$github_experience)
+hist(df$r_data_modeling_experience, binwidth=1)
+hist(df$github_experience, binwidth=1)
 ```
 
