@@ -1,0 +1,56 @@
+library('dplyr')
+df <- read.csv("~/Desktop/stat w4701/Project1/Survey+Response.csv")
+edit_date <- read.csv("~/Desktop/stat w4701/edit_data_2.csv")
+col.list <- c("Matlab", "R", "Github", "Excel", "SQL", "RStudio", "ggplot2", "shell", "C_C_plus_plus", "Python", "Stata", "LaTeX", "XML", "Web", "google_drive", "Sweave_knitr","dropbox", "SPSS", "regular_expressions", "lattice" )
+
+#Count Columns with NAs
+na.check = df%>%is.na() %>% apply(2,sum)
+
+#Remove NAs
+df_clean = df[,which(na.check==0)]
+
+#Create colums initializing at 0
+df_clean[,col.list] = 0
+
+for(i in col.list){
+  #Need an If Statement because of R vs RStudio. 
+    if(i == "R"){ 
+      #Use Reg expressions "R,|R$" which looks for "R," and for "R$" which means there is nothing after R (line 87 caused this issue)
+      fnd = "R,|R$"
+      #try to find fnd within the vector, return Row # if True
+      rows = grep(pattern = fnd, x = df_clean$Experiences.with.tools)
+    }else{
+      #Same as above
+      fnd = paste(i, sep = "")
+      rows = grep(pattern = fnd, x = df_clean$Experiences.with.tools, fixed = TRUE)
+      }
+    df_clean[rows,i] = 1
+}
+Program <- rep(0,114)
+for(i in 1:114){
+  if(df_clean$Program[i] %in% c("Data Science", "IDSE (master)", "Ms in ds", "MSDS")){
+    Program[i] <- "Data_Science_Master"
+}
+  else if(df_clean$Program[i] == "Data Science Certification"){
+    Program[i] <- "Data_Science_Certification"
+  }
+  else if(df_clean$Program[i] == "Statistics (master)"){
+    Program[i] <- "Statistics_Master"
+  }
+  else{
+   Program[i] <- "Others"
+  }
+}
+df_clean$Program <- as.factor(Program)
+df_clean$Experiences.with.tools <- NULL
+df_clean$num_skills <- apply(df_clean[,11:30], 1, sum)
+names(df_clean)[c(3, 6:10)] <- names(edit_date)[c(4, 7:11)]
+df_clean[c(3, 6:10)] <- edit_date[c(4, 7:11)]
+df_clean$prof_skills <- apply(df_clean[,c(3, 6:10)], 1, sum)
+library('ggplot2')
+ggplot(df_clean, aes(x=num_skills, color = Program)) + geom_density()
+library('gcookbook')
+ggplot(df_clean,aes(x=Program, y=num_skills, color = Program)) + geom_violin(trim = FALSE) + geom_boxplot(width = 0.1, fill = "black") + stat_summary(fun.y = median, geom = "point")
+ggplot(df_clean, aes(x=prof_skills, color = Program)) + geom_density()
+ggplot(df_clean,aes(x=Program, y=prof_skills, color = Program)) + geom_violin(trim = FALSE) + geom_boxplot(width = 0.1, fill = "black") + stat_summary(fun.y = median, geom = "point")
+ggplot(df_clean, aes(x=num_skills, y=prof_skills)) + stat_density2d(aes(colour = ..level..)) + geom_point() + facet_wrap(~Program, scales  = "free")
