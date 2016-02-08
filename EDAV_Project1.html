@@ -76,33 +76,7 @@ library('magrittr')</code></pre>
 setwd('/Users/ianjohnson/Desktop/Columbia/EDAV/Project1')
 
 #Load CSV file into Data Frame
-df = read.csv(&quot;Survey+Response.csv&quot;)
-
-col.list = c(&quot;Matlab&quot;, &quot;R&quot;, &quot;Github&quot;, &quot;Excel&quot;, &quot;SQL&quot;, &quot;RStudio&quot;, &quot;ggplot2&quot;, &quot;shell (terminal / command line)&quot;, &quot;C/C++&quot;, &quot;Python&quot;, &quot;Stata&quot;, &quot;LaTeX&quot;, &quot;XML&quot;, &quot;Web: html css js&quot;, &quot;google drive (formerly docs)&quot;, &quot;Sweave/knitr&quot;,&quot;dropbox&quot;, &quot;SPSS&quot;, &quot;regular expressions (grep)&quot;, &quot;lattice&quot; )
-
-#Count Columns with NAs
-na.check = df %&gt;% is.na() %&gt;% apply(2,sum)
-
-#Remove NAs
-df_clean = df[,which(na.check==0)]
-
-#Create colums initializing at 0
-df_clean[,col.list] = 0
-
-for(i in col.list){
-  #Need an If Statement because of R vs RStudio. 
-    if(i == &quot;R&quot;){ 
-      #Use Reg expressions &quot;R,|R$&quot; which looks for &quot;R,&quot; and for &quot;R$&quot; which means there is nothing after R (line 87 caused this issue)
-      fnd = &quot;R,|R$&quot;
-      #try to find fnd within the vector, return Row # if True
-      rows = grep(pattern = fnd, x = df_clean$Experiences.with.tools)
-    }else{
-      #Same as above
-      fnd = paste(i, sep = &quot;&quot;)
-      rows = grep(pattern = fnd, x = df_clean$Experiences.with.tools, fixed = TRUE)
-      }
-    df_clean[rows,i] = 1
-}</code></pre>
+df = read.csv(&quot;Survey+Response.csv&quot;)</code></pre>
 <div id="basic-data-summary" class="section level2">
 <h2>Basic data summary</h2>
 <div id="data-in-edit_data_2.csv-has-shorter-column-headers-skill-levels-integers" class="section level5">
