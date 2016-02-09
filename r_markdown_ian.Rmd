@@ -1,0 +1,38 @@
+---
+title: "EDAV_Project1"
+author: "Team"
+date: "January 28, 2016"
+output: html_document
+---
+
+```{r}
+library('ggplot2')
+library('magrittr')
+
+setwd('/Users/ianjohnson/Desktop/Columbia/EDAV/Project1')
+df = read.csv("edit_data_2.csv")
+```
+
+
+## Basic data summary
+##### The text values for experience levels were converted in integers from 0-3
+
+
+Mean skills levels:
+
+  Matlab    |   GitHub     |   R Markdown    |   R Multivariate Analysis    | R Graphics    |  R Data Modeling
+----------- | ------------ |  -------------- |  --------------------------- | ------------- | -------------------
+ 0.8333333  |   0.9912281  |   0.9561404     |         0.9385965            |   1.1140351   |     1.6315789
+
+
+### R Data Modeling Experience by gender:
+```{r}
+ggplot(df, aes(r_data_modeling_experience, fill=gender)) + geom_bar(position="dodge")
+```
+
+
+### GitHub Experience level by gender:
+```{r}
+ggplot(df, aes(r_data_modeling_experience, fill=gender)) + geom_bar(position="dodge")
+```
+
