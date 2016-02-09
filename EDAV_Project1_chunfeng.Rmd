@@ -13,7 +13,6 @@ setwd('/Users/bobminnich/Documents/Columbia/Courses/DataVisualization/EDAV_Proje
 #Load CSV file into Data Frame
 df = read.csv("Survey+Response.csv")
 edit_data <- read.csv("edit_data_2.csv")
-
 col.list = c("Matlab", "R", "Github", "Excel", "SQL", "RStudio", "ggplot2", "shell (terminal / command line)", "C/C++", "Python", "Stata", "LaTeX", "XML", "Web: html css js", "google drive (formerly docs)", "Sweave/knitr","dropbox", "SPSS", "regular expressions (grep)", "lattice" )
 
 #Count Columns with NAs
@@ -39,7 +38,11 @@ for(i in col.list){
       }
     df_clean[rows,i] = 1
 }
-#Re-divide programs into 4 categories
+```
+
+Redivide Programs into 4 groups.
+
+```{r}
 Program <- rep(0,114)
 for(i in 1:114){
   if(df_clean$Program[i] %in% c("Data Science", "IDSE (master)", "Ms in ds", "MSDS")){
@@ -55,16 +58,24 @@ for(i in 1:114){
    Program[i] <- "Others"
   }
 }
-#Copy df_clean for further use
+```
 
+
+Copy the dataset for further use and create new variables: num-skills which is the number of skills one claiming he/she masters and prof-skills which is added by the sefl-reporting level of one's experience in certain programming tools to measure his/her proficiency of these tools.
+
+```{r}
 mydata <- df_clean
-
 mydata$Program <- as.factor(Program)
 mydata$Experiences.with.tools <- NULL
 mydata$num_skills <- apply(mydata[,11:30], 1, sum)
 names(mydata)[c(3, 6:10)] <- names(edit_data)[c(4, 7:11)]
 mydata[c(3, 6:10)] <- edit_data[c(4, 7:11)]
 mydata$prof_skills <- apply(mydata[,c(3, 6:10)], 1, sum)
+```
+
+Use ggplot to draw kernel distributions, boxplots, joint distribution by contour of num-skills and prof-skills for different programs.
+
+```{r}
 library('ggplot2')
 ggplot(mydata, aes(x=num_skills, color = Program)) + geom_density()
 library('gcookbook')
@@ -73,3 +84,4 @@ ggplot(mydata, aes(x=prof_skills, color = Program)) + geom_density()
 ggplot(mydata,aes(x=Program, y=prof_skills, color = Program)) + geom_violin(trim = FALSE) + geom_boxplot(width = 0.1, fill = "black") + stat_summary(fun.y = median, geom = "point")
 ggplot(mydata, aes(x=num_skills, y=prof_skills)) + stat_density2d(aes(colour = ..level..)) + geom_point() + facet_wrap(~Program, scales  = "free")
 ```
+
