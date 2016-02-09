@@ -1,0 +1,206 @@
+---
+title: "Arum_Network"
+author: "team"
+date: "February 9, 2016"
+output: html_document
+---
+
+Arum's code
+```{r}
+# Load libraries (install these, if you haven't)
+library(plyr)
+library(magrittr)
+library(igraph)
+library(statnet)
+
+df = read.csv("edit_data.csv")
+
+col.list = c("Matlab", "R", "Excel", "RStudio", "ggplot2", "Stata", "Sweave/knitr", 
+             "SPSS", "lattice", "Github", "LaTeX", "google drive (formerly docs)", 
+             "dropbox", "SQL", "shell (terminal / command line)",  "C/C++", "Python", 
+             "regular expressions (grep)", "XML", "Web: html css js")
+
+df_clean = df
+df_clean[,col.list] = 0
+
+for(i in col.list){
+  #Need an If Statement because of R vs RStudio. 
+  if(i == "R"){ 
+    #Use Reg expressions "R,|R$" which looks for "R," and for "R$" which means there is nothing after R (line 87 caused this issue)
+    fnd = "R,|R$"
+    #try to find fnd within the vector, return Row # if True
+    rows = grep(pattern = fnd, x = df_clean$Experiences.with.tools)
+  }else{
+    #Same as above
+    fnd = paste(i, sep = "")
+    rows = grep(pattern = fnd, x = df_clean$Experiences.with.tools, fixed = TRUE)
+  }
+  df_clean[rows,i] = 1
+}
+
+
+
+
+
+df_clean = data.frame(df_clean)
+
+colnames(df_clean)[c(18, 23, 24, 26, 27, 29, 31)] <- c("Sweave_knitr", "Google Drive", "Dropbox", 
+                                                       "Shell", "C_CPP", "Regular Expression", "Web")    
+    # From (Sweave/knitr, google drive (formerly docs), dropbox, 
+    # shell (terminal / command line), C/C++, regular expressions (grep), Web: html css js)
+
+# Modified skill names
+sk_list = c("Matlab", "R", "Excel", "RStudio", "ggplot2", "Stata", "Sweave_knitr", 
+            "SPSS", "lattice", "Github", "LaTeX", "Google Drive", "Dropbox", "SQL", 
+            "Shell",  "C_CPP", "Python", "Regular Expression", "XML", "Web")
+
+# Category of each skill set, we can adjust as needed. (ST: Statistics, GE: General, CS: Computer Science)
+area_list <- c("ST", "ST", "ST", "ST", "ST", "ST", "ST", "ST", "ST", "GE", "GE", "GE", "GE", 
+               "CS", "CS", "CS", "CS", "CS", "CS", "CS")
+area_color <- c(rep("SkyBlue", 9), rep("Green", 4), rep("Yellow", 7))
+
+sk_sum <- apply(df_clean[12:31], 2, sum) # Total number of students who chose it
+sk_set <- data.frame(sk_sum, round(sk_sum/nrow(df_clean)*100, 1), area_list, area_color) # Summary of skill set
+colnames(sk_set) <- c("Number of Students", "Percentage of Students", "Area", "Vertex Color")
+
+#prog_list <- c("IDSE (master)", "Data Science Certification", "Statistics (master)", "Other masters", "Ph.D.")
+prog_list <- c("Data Science Certification", "IDSE (master)", "Other masters", "Ph.D.", "Statistics (master)")
+prog_set <- data.frame(count(df_clean, "Program")) # Summary of program (number of students)
+rownames(prog_set) <- prog_list
+
+
+
+
+# Comment 1) or 2) below base on your needs. Choose multiple lines and command+shift+C to make them comments
+
+#----- 1) Comment out these, if you are using all skills -----#
+# to_rmv <- c(7, 9) # skill to not show on the graph or result matrix. number is the order in sk_list.
+# sk_list_part <- sk_list[-to_rmv]
+# area_list_part <- area_list[-to_rmv]
+# area_color_part <- area_color[-to_rmv]
+# sk_sum_part <- sk_sum[-to_rmv]
+#--------------------------------------------------------------#
+
+#----- 2) Comment out these, if you are removing some skills -----#
+sk_list_part <- sk_list
+area_list_part <- area_list
+area_color_part <- area_color
+sk_sum_part <- sk_sum
+#--------------------------------------------------------------#
+
+num_student = nrow(df_clean)
+num_sk = length(sk_list_part)
+
+# (1) Adjacency matrix (+1 when a student selected both skills)
+sk_rel = data.frame(matrix(rep(0,num_sk*num_sk), ncol = num_sk, nrow = num_sk))
+colnames(sk_rel) = sk_list_part
+rownames(sk_rel) = sk_list_part
+
+for(i in 1:num_student) {
+  for(sk1 in sk_list_part) {
+    for(sk2 in sk_list_part) {
+      if((df_clean[i, sk1] == 1 && df_clean[i, sk2] == 1) && (sk1 != sk2)) {
+        sk_rel[sk1, sk2] = sk_rel[sk1, sk2] + 1
+        # Set weight between same skill (Matlab, Matlab) as 0
+      }
+    }
+  }
+}
+
+# (2) Adjacency matrix ((A, B) weight: % of students who chose B among students who chose A)
+sk_per = data.frame(matrix(rep(0,num_sk*num_sk), ncol = num_sk, nrow = num_sk))
+colnames(sk_per) = sk_list_part
+rownames(sk_per) = sk_list_part
+
+for(sk1 in sk_list_part) {
+  for(sk2 in sk_list_part) {
+    if(sk1 != sk2) {
+      sk_per[sk1, sk2] = round(sk_rel[sk1, sk2] / sk_set[sk1, 1] * 100, 1)
+      # (Matlab, R) : % of students who chose R among the student who chose Matlab
+    }
+    else {
+      sk_per[sk1, sk2] = sk_set[sk1, 2]
+      # (Matlab, Matlab) : % of students who chose Matlab
+    }
+  }
+}
+
+# (3) Adjacency matrix ((A, B) difference in percentage:
+#    (% of students who chose B among students who chose A) - (% of students who chose A), only when the difference > 0)
+sk_dif = data.frame(matrix(rep(0,num_sk*num_sk), ncol = num_sk, nrow = num_sk))
+colnames(sk_dif) = sk_list_part
+rownames(sk_dif) = sk_list_part
+dif_cri = 18 # Threshold for choosing which edge to show. If 18, it only shows edges with difference of more than 10.
+
+for(sk1 in sk_list_part) {
+  for(sk2 in sk_list_part) {
+    if(sk1 != sk2) {
+      if(sk_per[sk1, sk2]-sk_per[sk2, sk2] > dif_cri) # it consider only when sk_per[sk1, sk2] is bigger (positive relationship)
+      {
+        sk_dif[sk1, sk2] = round(sk_per[sk1, sk2] - sk_per[sk2, sk2], 0)
+        # (Matlab, R) : (% of ppl who chose Matlab among the ppl who chose R) - (% of ppl who chose R)
+        # This value is 0, if difference is below dif_cri. It's to show only significant differences.
+      }
+    }
+  }
+}
+
+# (4) Adjacency matrix (+1 when a student in a department selected a skill)
+sk_dep = data.frame(matrix(rep(0, 5*num_sk), ncol = 5, nrow = num_sk))
+colnames(sk_dep) = prog_list
+rownames(sk_dep) = sk_list_part
+
+for(i in 1:num_student) {
+  for(sk1 in sk_list_part) {
+      if(df_clean[i, sk1] > 0) 
+      {
+        stu_dep = as.character(df_clean[i, 2])
+        sk_dep[sk1, stu_dep] = sk_dep[sk1, stu_dep] + 1
+      }
+  }
+}
+
+# (5) Adjacency matrix (% of students who chose a skill in a department)
+sk_dep_per = data.frame(matrix(rep(0, 5*num_sk), ncol = 5, nrow = num_sk))
+colnames(sk_dep_per) = prog_list
+rownames(sk_dep_per) = sk_list_part
+
+for(sk1 in sk_list_part) {
+  for(pg in prog_list) {
+    sk_dep_per[sk1, pg] = round(sk_dep[sk1, pg] / prog_set[pg, 2] * 100, 1)
+  }
+}
+
+# write adjacency matrix into files. you can uncomment it, if you want to see it in excel.
+# write.csv(sk_rel, file="Relationship.csv")
+# write.csv(sk_per, file="Percentage.csv")
+# write.csv(sk_dif, file="Difference.csv")
+# write.csv(sk_dep, file="Department.csv")
+# write.csv(sk_dep_per, file="Department Percentage.csv")
+
+
+#-------------- Drawing graph -------------------------
+#fradj = as.matrix(sk_rel)   # (1) (A, B) number of students who chose A and B skills at the same time
+#fradj = as.matrix(sk_per)   # (2) (A, B) percentage of students who chose B among those who chose A
+fradj = as.matrix(sk_dif)   # (3) (A, B) (% of ppl who chose Matlab among the ppl who chose R) - (% of ppl who chose R)
+
+# Configure graph properties
+#frnet = graph.adjacency(fradj, weight=TRUE, mode="undirected") # for graph 1), undirected graph makes more sense.
+frnet = graph.adjacency(fradj, weight=TRUE)
+
+V(frnet)$size = sk_sum_part # Size of vertices
+V(frnet)$color = area_color_part # Color of vertices
+E(frnet)$arrow.size = 0.5 # Arrow size
+E(frnet)$arrow.width = E(frnet)$weight/10 # Edge thickness
+E(frnet)$arrow.mode = ">" # forward arrow
+E(frnet)$curved = TRUE # make edges curved
+
+E(frnet)$label = E(frnet)$weight # Label of edge - weight
+#E(frnet)$label = NA # uncomment this to remove edge labels
+
+plot.igraph(frnet, layout=layout.fruchterman.reingold, edge.arrow.size=0.5)
+tkplot(frnet)
+
+
+```
+
