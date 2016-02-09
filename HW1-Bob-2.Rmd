@@ -121,84 +121,69 @@ tkplot(frnet, edge.width=E(frnet)$weight/10)
 ```
 
 
-
-Decision Tree
+##Decision Tree
 We will now look at a decision tree to try and understand if we have the ability to predict what program a student is in only the student's experience with the software programs and tools listed in the survey.
 
-We have chosen a decision tree because the intrepetability is high and can give us some insight into what categories help create the purest subgroups using the Gini Index
+A decision tree was chosen because the intrepetability is high and can give us some insight into what categories help create the purest subgroups using the Gini Index
 
-Right now we will split the training set to 80% of the given data and attempt to predict on the remaining 20% to get an idea of how this prediction algorithm might perform.
-
-
-```{r}
-df = read.csv("Survey+Response.csv")
-
-col.list = c("Matlab", "R", "Github", "Excel", "SQL", "RStudio", "ggplot2", "shell (terminal / command line)", "C/C++", "Python", "Stata", "LaTeX", "XML", "Web: html css js", "google drive (formerly docs)", "Sweave/knitr","dropbox", "SPSS", "regular expressions (grep)", "lattice" )
-
-#Count Columns with NAs
-na.check = df%>%is.na() %>% apply(2,sum)
-
-#Remove NAs
-df_clean_2 = df[,which(na.check==0)]
-
-#Create colums initializing at 0
-df_clean_2[,col.list] = 0
-
-for(i in col.list){
-  #Need an If Statement because of R vs RStudio. 
-    if(i == "R"){ 
-      #Use Reg expressions "R,|R$" which looks for "R," and for "R$" which means there is nothing after R (line 87 caused this issue)
-      fnd = "R,|R$"
-      #try to find fnd within the vector, return Row # if True
-      rows = grep(pattern = fnd, x = df_clean_2$Experiences.with.tools)
-    }else{
-      #Same as above
-      fnd = paste(i, sep = "")
-      rows = grep(pattern = fnd, x = df_clean_2$Experiences.with.tools, fixed = TRUE)
-      }
-    df_clean_2[rows,i] = 1
-}
-
-
-```
-
+The training set is set to 80% of the given data and attempt to predict on the remaining 20% to get an idea of how this prediction algorithm might perform. We will also change the randomness of the selection of the training set by using `set.seed()`. This will allow us to see how high the variance might be for the tree. If the tree greatly changes based on different training sets we are experiencing a high variance. 
 
 ```{r}
 #Renaming the columnbs because of issues with speicific characterswithin the column names.
 col.list2 = c("Matlab", "R", "Github", "Excel", "SQL", "RStudio", "ggplot2", "shell", "C", "Python", "Stata", "LaTeX", "XML", "Web", "google_drive", "knitr","dropbox", "SPSS", "reg_ex", "lattice" )
 colnames(df_clean) = c(colnames(df_clean)[1:11], col.list2)
 
-#Set random seed so that we do introduce any bias
-set.seed(3)
-train_in = sample(c(1:nrow(df_clean)), floor(0.8*nrow(df_clean)))
+par(mfrow=c(2, 2))
 
+for(i in c(1:4)){
+#Set random seed so that we do introduce any bias
+set.seed(i)
+train_in = sample(c(1:nrow(df_clean)), floor(0.8*nrow(df_clean)))
 #Training Set
 train = df_clean[train_in,]
-
 #Test Set
 test = df_clean[-train_in,]
-
 
 #Fit the model using all variables 
 fit <- rpart(Program ~ Matlab+R+Github+Excel+SQL+RStudio+ggplot2+shell+C+Python+Stata+LaTeX+XML+Web+google_drive+knitr+dropbox+SPSS+reg_ex+lattice, data=train, method = "class")
 
 #Create prediction
 pred <- predict(fit, newdata=test, type = "class")
-prp(fit, min.auto.cex	= 0.05, varlen = 100 )
-```
-We can see from the training data the tree has selected "Python" as the first split. Because we are training a Classification Tree, we are spliting each node based on the GINI index. 
-```{r}
 predictions =   predict(fit, test,type = "class")
 percent_correct = sum(predictions==test$Program)/length(test$Program)
-print(paste("The percent correct for the Decision Tree is ", percent_correct))
+
+
+main_title = paste("Decision Tree\n Random Seed = ", i,"\nPercent Correct:", round(percent_correct*100,2))
+
+prp(fit, min.auto.cex	= 0.1, varlen = 100,main = "")
+title(main = main_title, cex.main = 1)
+}
+
 ```
-We can see that the decision tree performs poorly on the test dataset with only 
+We can see from the training data the tree has selected "dropbox" for the first split in all four cases. While hte trees are not necessarily performing well we can see that the trees have changed after the first split in every case. This signifies a model experiencing high variance. One way we can work to bring the variance down is using Random Forests, which will randomly select the first split over many decision trees and use a voting process to determine classification. This voting process will decrease the variance that we are currently seeing and should improve overall performance. We will see a benefit as long as the decrease in variance is greater than the increase in bias that will be experienced. 
+
+Because of the small dataset Random Forests trains very quickly so we can run multiple training attempts very quickly. We will look at a range of trees to use in the random forest and see how it performs. Random Forests have the a trade off of higher accuracy but harder interpretation than typical Decision Trees. 
+
+For the following we will look at accuracy and Importance. Where the imporatnace calculated using the mean decrease in the Gini Index over all of the trees. In more simple terms these graphs show the most important variable that causes the purist division within the data.
 
 ```{r}
+par(mfrow=c(2, 2))
+for(i in c(1:4)){
+#Set random seed so that we do introduce any bias
+set.seed(i)
+
+train_in = sample(c(1:nrow(df_clean)), floor(0.8*nrow(df_clean)))
+#Training Set
+train = df_clean[train_in,]
+#Test Set
+test = df_clean[-train_in,]
+
 train$Program = factor(train$Program)
 #test$Program = factor(test$Program, levels=levels(train$Program))
 test$Program = factor(test$Program)
 formulatest = formula("Program ~ Matlab+R+Github+Excel+SQL+RStudio+ggplot2+shell+C+Python+Stata+LaTeX+XML+Web+google_drive+knitr+dropbox+SPSS+reg_ex+lattice")
+
+#set.seed(1)
 rf = randomForest(formulatest,data=train,ntree=40)
 
 output_rf = importance(rf)
@@ -208,54 +193,25 @@ pdf = data.frame(cbind(x,y))
 pdf$y = as.numeric(pdf$y)
 pdf$x <- factor(pdf$x, levels = pdf$x[order(pdf$y)])
 
-ggplot(data = pdf,aes(x=x, y = y)) + 
-  geom_bar(stat='identity',aes(x, fill=y)) + 
-  coord_flip() + 
-  ggtitle("Random Forest - Importance")
-
-
 output = predict(rf, test, type = "response", na.action(na.omit))
 percent_correct = sum(as.character(output) == as.character(test$Program))/nrow(test)
+title = paste("Random Forest - Importance\n Percent Correct: ", percent_correct, "\n Set Seed = ",i)
 
-print(paste("The percent correct for the Random Forest is ", percent_correct))
+a = ggplot(data = pdf,aes(x=x, y = y)) + 
+  geom_bar(stat='identity',aes(x, fill=y)) + 
+  coord_flip() + 
+  guides(fill=FALSE) + 
+  ggtitle(title)+
+  theme(plot.title = element_text(size=10)) + 
+  xlab("Importance") + 
+  ylab("Skill")
+nam <- paste("A", i, sep = "")
+assign(nam, a)
 
-y = c()
-for(i in seq(1,500,5)){
-  rf = randomForest(formulatest,data=train,ntree=i)
-  output = predict(rf, test, type = "response", na.action(na.omit))
-  percent_correct = sum(as.character(output) == as.character(test$Program))/nrow(test)
-  y = c(y,percent_correct)
+print(percent_correct)
 }
-
-pl_df = data.frame(y)
-ggplot(data=pl_df, aes(x=seq(1,500,5), y=y)) +
-    geom_line() +
-    geom_point() +
-    xlab("Number of Random Forest Trees") + ylab("%Correct") +
-    ggtitle("Number of Trees vs Classification Percent Correct")
-
+library(gridExtra)
+grid.arrange(A1,A2,A3,A4,ncol=2)
 ```
 
-```{r}
-y = c()
-for(i in seq(2,nrow(train),2)){
-  index = as.numeric(row.names(train))[1:i]
-  newtrain = train[c(1:i),]
-  newtrain$Program = factor(newtrain$Program)
-  test$Program = factor(test$Program, levels=levels(df_clean$Program))
-  #test$Program = factor(test$Program)
-  set.seed(1)
-  rf = randomForest(formulatest,data=newtrain,ntree=40)
-  output = predict(rf, test, type = "response", na.action(na.omit))
-  
-  percent_correct = sum(as.character(output) == as.character(test$Program))/nrow(test)
-  y = c(y,percent_correct)
-}
-pl_df = data.frame(seq(2,nrow(train),2),y)
-colnames(pl_df) = c("x","y")
-ggplot(data=pl_df, aes(x=x, y=y)) +
-    geom_point() + stat_smooth(se = TRUE) + 
-    xlab("Training Samples") + ylab("%Correct") +
-    ggtitle("Training Curves")
-```
-  
+Overall we can see a general increase in the perofrmance of of the different training 
