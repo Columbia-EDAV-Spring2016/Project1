@@ -1,0 +1,189 @@
+---
+title: "EDAV_Project1"
+author: "Team"
+date: "January 28, 2016"
+output: html_document
+---
+
+Load the data:
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
+#Set your working directory
+setwd('/Users/bobminnich/Documents/Columbia/Courses/DataVisualization/Project1')
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(caret)
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(magrittr)
+library(igraph)
+library(statnet)
+
+
+#Load CSV file into Data Frame
+```
+
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
+#Load CSV file into Data Frame
+df = read.csv("edit_data.csv")
+
+col.list = c("Matlab", "R", "Excel", "RStudio", "ggplot2", "Stata", "Sweave/knitr", 
+             "SPSS", "lattice", "Github", "LaTeX", "google drive (formerly docs)", 
+             "dropbox", "SQL", "shell (terminal / command line)",  "C/C++", "Python", 
+             "regular expressions (grep)", "XML", "Web: html css js")
+
+#Count Columns with NAs
+#na.check = df%>%is.na() %>% apply(2,sum)
+
+#Remove NAs
+#df_clean = df[,which(na.check==0)]
+df_clean = df
+
+#Create colums initializing at 0
+df_clean[,col.list] = 0
+
+for(i in col.list){
+  #Need an If Statement because of R vs RStudio. 
+  if(i == "R"){ 
+    #Use Reg expressions "R,|R$" which looks for "R," and for "R$" which means there is nothing after R (line 87 caused this issue)
+    fnd = "R,|R$"
+    #try to find fnd within the vector, return Row # if True
+    rows = grep(pattern = fnd, x = df_clean$Experiences.with.tools)
+  }else{
+    #Same as above
+    fnd = paste(i, sep = "")
+    rows = grep(pattern = fnd, x = df_clean$Experiences.with.tools, fixed = TRUE)
+  }
+  df_clean[rows,i] = 1
+}
+
+df_test = df_clean
+df_clean = data.frame(df_clean)
+
+colnames(df_clean)[c(18, 23, 24, 26, 27, 29, 31)] <- c("Sweave_knitr", "Google Drive", "Dropbox", 
+                                                       "Shell", "C_CPP", "Regular Expression", "Web")    
+    # From (Sweave/knitr, google drive (formerly docs), dropbox, 
+    # shell (terminal / command line), C/C++, regular expressions (grep), Web: html css js)
+```
+
+##Decision Tree
+We will now look at a decision tree to try and understand if we have the ability to predict what program a student is in only the student's experience with the software programs and tools listed in the survey.
+
+A decision tree was chosen because the intrepetability is high and can give us some insight into what categories help create the purest subgroups using the Gini Index
+
+The training set is set to 80% of the given data and attempt to predict on the remaining 20% to get an idea of how this prediction algorithm might perform. We will also change the randomness of the selection of the training set by using `set.seed()`. This will allow us to see how high the variance might be for the tree. If the tree greatly changes based on different training sets we are experiencing a high variance. 
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center'}
+#Renaming the columnbs because of issues with speicific characterswithin the column names.
+col.list2 = c("Matlab", "R", "Github", "Excel", "SQL", "RStudio", "ggplot2", "shell", "C", "Python", "Stata", "LaTeX", "XML", "Web", "google_drive", "knitr","dropbox", "SPSS", "reg_ex", "lattice" )
+colnames(df_clean) = c(colnames(df_clean)[1:11], col.list2)
+
+par(mfrow=c(2, 2))
+
+for(i in c(1:4)){
+#Set random seed so that we do introduce any bias
+set.seed(i)
+train_in = sample(c(1:nrow(df_clean)), floor(0.8*nrow(df_clean)))
+#Training Set
+train = df_clean[train_in,]
+#Test Set
+test = df_clean[-train_in,]
+
+#Fit the model using all variables 
+fit <- rpart(Program ~ Matlab+R+Github+Excel+SQL+RStudio+ggplot2+shell+C+Python+Stata+LaTeX+XML+Web+google_drive+knitr+dropbox+SPSS+reg_ex+lattice, data=train, method = "class")
+
+#Create prediction
+pred <- predict(fit, newdata=test, type = "class")
+predictions =   predict(fit, test,type = "class")
+percent_correct = sum(predictions==test$Program)/length(test$Program)
+
+
+main_title = paste("Decision Tree\n Random Seed = ", i,"\nPercent Correct:", round(percent_correct*100,2))
+
+prp(fit, min.auto.cex	= 0.1, varlen = 100,main = "")
+title(main = main_title, cex.main = 1)
+}
+
+```
+</br>
+We can see from the training data the tree has selected "dropbox" for the first split in all four cases. While hte trees are not necessarily performing well we can see that the trees have changed after the first split in every case. This signifies a model experiencing high variance. One way we can work to bring the variance down is using Random Forests, which will randomly select the first split over many decision trees and use a voting process to determine classification. This voting process will decrease the variance that we are currently seeing and should improve overall performance. We will see a benefit as long as the decrease in variance is greater than the increase in bias that will be experienced. 
+
+Because of the small dataset Random Forests trains very quickly so we can run multiple training attempts very quickly. We will look at a range of trees to use in the random forest and see how it performs. Random Forests have the a trade off of higher accuracy but harder interpretation than typical Decision Trees. 
+
+For the following we will look at accuracy and Importance. Where the imporatnace calculated using the mean decrease in the Gini Index over all of the trees. In more simple terms these graphs show the most important variable that causes the purist division within the data.
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center'}
+par(mfrow=c(2, 2))
+for(i in c(1:4)){
+#Set random seed so that we do introduce any bias
+set.seed(i)
+
+train_in = sample(c(1:nrow(df_clean)), floor(0.8*nrow(df_clean)))
+#Training Set
+train = df_clean[train_in,]
+#Test Set
+test = df_clean[-train_in,]
+
+train$Program = factor(train$Program)
+#test$Program = factor(test$Program, levels=levels(train$Program))
+test$Program = factor(test$Program)
+formulatest = formula("Program ~ Matlab+R+Github+Excel+SQL+RStudio+ggplot2+shell+C+Python+Stata+LaTeX+XML+Web+google_drive+knitr+dropbox+SPSS+reg_ex+lattice")
+
+#set.seed(1)
+rf = randomForest(formulatest,data=train,ntree=200)
+
+output_rf = importance(rf)
+x = (row.names(output_rf))
+y = as.numeric(output_rf)
+pdf = data.frame(cbind(x,y))
+pdf$y = as.numeric(pdf$y)
+pdf$x <- factor(pdf$x, levels = pdf$x[order(pdf$y)])
+#pdf = pdf[order(pdf$y, decreasing = TRUE),]
+#rownames(pdf) = c(1:nrow(pdf))
+
+output = predict(rf, test, type = "response", na.action(na.omit))
+percent_correct = sum(as.character(output) == as.character(test$Program))/nrow(test)
+title = paste("Random Forest - Importance\n Percent Correct: ", percent_correct, "\n Set Seed = ",i)
+
+a = ggplot(data = pdf,aes(x = reorder(x, -y), y = y)) + 
+  geom_bar(stat='identity',aes(x, fill=y)) + 
+  coord_flip() + 
+  guides(fill=FALSE) + 
+  ggtitle(title)+
+  theme(plot.title = element_text(size=10)) + 
+  xlab("Skill") + 
+  ylab("Importance")
+nam <- paste("A", i, sep = "")
+assign(nam, a)
+}
+library(gridExtra)
+grid.arrange(A1,A2,A3,A4,ncol=2)
+```
+
+Overall we can see a increase in the performance of the predictions with different trees. While we saw a decrease in when `set.seed() = 1` for all of the other case we saw an increase as expected. Most likely if we were to recieve more training data we could expect to improve on our prediction. On average over this small training set we were 52.17% accurate. 
+
+To understand how we did we can look at the percentages of all of the majors
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center'}
+
+degree_percent = summary(df_clean$Program)/nrow(df_clean)
+pl_df = data.frame(degree_percent)
+pl_df$x = rownames(pl_df)
+
+rownames(pl_df) =c(1:nrow(pl_df)) 
+colnames(pl_df) = c("percent","x")
+pdf$y <- factor(pl_df$x, levels = pl_df$x[order(pl_df$percent)])
+
+ggplot(data = pl_df,aes(x = x, y = percent,fill=x))+  
+  geom_bar(stat = "identity")+
+  coord_flip() + 
+  ggtitle("Percentage of Students within each Program")+
+  xlab("Percentage") +
+  ylab("Degree Program")+
+  guides(fill = FALSE)
+```
+
+Overall the largest major within the class is IDSE (master) at 50%. So if we just consistently guessed IDSE we could still do fairly well. The Random Forest only did slightly better at 52.17% on average.
+
+Looking into decision trees helped us gain a better understanding of what factors might help differentiate the programs. We saw consistently that dropbox seemed to play the largest factor in how our algorithm determined which student belonged to which program. However even with 200 trees in the Random forest we still saw the importance ranking change, suggesting our data is still very spread and has a high variance. This is where more data could help the performance.

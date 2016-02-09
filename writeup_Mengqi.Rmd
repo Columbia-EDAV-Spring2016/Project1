@@ -1,0 +1,103 @@
+---
+title: "Project 1 Writeup"
+author: "Mengqi Wang"
+date: "Feb 8, 2016"
+output: html_document
+---
+
+What I did are chord diagrams that illustrate the relationship inside skills, i.e., the proportion of people who have one skill A still have anther skill B, and the relationship between program and skills.
+
+To visualize this relationship, we need to selection features (columns corresponding to skillset questions in our case and program column), split each skill into one new column as bitmap (e.g. if 1 in SQL means familiarity for SQL and 0 means not). 
+
+First I further cleaned the data using following script:
+```{r}
+#Set your working directory
+#setwd('Documents/cuw4701_edav/')
+#Load CSV file into Data Frame
+df = read.csv("edit_data.csv")
+col.list = c("Matlab", "R", "Github", "Excel", "SQL", "RStudio", "ggplot2", "shell (terminal / command line)", "C/C++", "Python", "Stata", "LaTeX", "XML", "Web: html css js", "google drive (formerly docs)", "Sweave/knitr","dropbox", "SPSS", "regular expressions (grep)", "lattice" )
+
+#Create colums initializing at 0
+df[,col.list] = 0
+
+for(i in col.list){
+  #Need an If Statement because of R vs RStudio. 
+  if(i == "R"){ 
+    #Use Reg expressions "R,|R$" which looks for "R," and for "R$" which means there is nothing after R (line 87 caused this issue)
+    fnd = "R,|R$"
+    #try to find fnd within the vector, return Row # if True
+    rows = grep(pattern = fnd, x = df$Experiences.with.tools)
+  }else{
+    #Same as above
+    fnd = paste(i, sep = "")
+    rows = grep(pattern = fnd, x = df$Experiences.with.tools, fixed = TRUE)
+  }
+  df[rows,i] = 1
+}
+
+separate_major <- function(survey){
+  IDSE = which(survey$Program == "IDSE (master)")
+  Other = which(survey$Program == "Other masters")
+  DSC = which(survey$Program == "Data Science Certification")
+  STATS = which(survey$Program == "Statistics (master)")
+  PHD = which(survey$Program == "Ph.D.")
+  
+  a = list(IDSE, DSC, STATS, PHD, Other)
+  return(a) 
+}
+```
+
+
+Filter those skills that matters. In other words, if one skill has too few people, we filtered that out.
+```{r, fig.high=12, fig.width=8, warning=FALSE}
+#install.packages("circlize")
+library(circlize)
+
+# filter features
+df_clean <- df[,c(12:31)]
+colnames(df_clean)[8] = 'Shell'
+colnames(df_clean)[14] = 'Web'
+colnames(df_clean)[15] = 'Google Doc'
+df_clean = df_clean[,-c(13, 16:20)]
+
+#colnames(df_clean)[2] = "ProgrammingProficiency"
+#df_clean[13, 1] = df_clean[1, 1]
+majors = separate_major(df)
+IDSE = colMeans(df_clean[majors[[1]],])
+DSC = colMeans(df_clean[majors[[2]],])
+STATS = colMeans(df_clean[majors[[3]],])
+PHD = colMeans(df_clean[majors[[4]],])
+Other = colMeans(df_clean[majors[[5]],])
+
+df_cd = rbind(IDSE, DSC, STATS, PHD, Other)
+df_bymajor = data.frame(from = rep(rownames(df_cd), times = ncol(df_cd)), to = rep(colnames(df_cd), each = nrow(df_cd)),
+                value = as.vector(df_cd),
+                stringsAsFactors = FALSE)
+chordDiagram(df_bymajor)
+```
+
+So the chord diagram for program to skills is created. Each degree has a corresponding arc in the circle and each chord connects a proportion of students in each program to each skill.
+
+Then we further transformed the dataset for creating a new chord diagram showing the relationship inner skillset.
+```{r, fig.high=12, fig.width=8}
+df_skillset = data.frame(matrix(rep(0,dim(df_clean)[2] * dim(df_clean)[2]), nrow=dim(df_clean)[2], ncol=dim(df_clean)[2]))
+colnames(df_skillset) = colnames(df_clean)
+rownames(df_skillset) = colnames(df_clean)
+sk_list = colnames(df_clean)
+for(i in 1:dim(df_clean)[1]) {
+  for(j in 1:dim(df_clean)[2]) {
+    for(k in 1:j) {
+      if((df_clean[i, j] == 1 && df_clean[i, k] == 1) && (sk_list[j] != sk_list[k])) {
+        df_skillset[j, k] = df_skillset[j, k] + 1
+        # Set weight between same skill (Matlab, Matlab) as 0
+      }
+    }
+  }
+}
+
+df_byskill = data.frame(from = rep(rownames(df_skillset), times = ncol(df_skillset)), to = rep(colnames(df_skillset), each = nrow(df_skillset)), value = as.vector(unlist(df_skillset)), stringsAsFactors = FALSE)
+grid.col = NULL
+grid.col[sk_list] = 1:length(sk_list)
+chordDiagram(df_byskill, grid.col = grid.col)
+```
+
