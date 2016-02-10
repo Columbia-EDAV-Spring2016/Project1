@@ -130,7 +130,7 @@ This plot reflects the joint distributions of the proficiency of skills and the 
 
 ##Differences between Programs - Experience with Tools
 
-I created a visualization that shows the information of experience with tools across majors. There are two plots made. One compares stats with data science and the other compares the data science master with data science certificates. I chose these two majors because the majority of people are in these two majors. We can compare as many majors as we want if needed. The graph shows for each tool what is the proportion of people who know how to use the tool. I choose the top five tools identified in the random forest classifier. We can clearly see that the patterns for two majors are different. Also, we can use this kind of plot to see what are people from different good at.
+We created a visualization that shows the information of experience with tools across majors. The visualization is called radar plot. It will help us to compare majors through the difference in experience with tools. The graph will show for each tool what is the proportion of people who know how to use the tool. 
 
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
 survey = read.csv("Survey+Response.csv",na.strings = "NA")
@@ -361,6 +361,7 @@ colnames(df_clean)[c(18, 23, 24, 26, 27, 29, 31)] <- c("Sweave_knitr", "Google D
     # From (Sweave/knitr, google drive (formerly docs), dropbox, 
     # shell (terminal / command line), C/C++, regular expressions (grep), Web: html css js)
 ```
+There are two plots made. One compares Stats with Data Science and the other compares the Data Science master with Data Science certificates. We chose these these majors because the majority of people are in these majors. We can compare as many majors as we want if needed. We chose the top five tools identified in the random forest classifier we made for classifying majors. On the plot the further the line is from the center, the larger the proportion of people who know how to use the tool. The range for variables is from 0 to 1 (proportion). We can clearly see that the patterns for Stats and Data Science are different. The pattern for Data Science master is similar to the pattern for Data Science certificates. These results show that Stats students are different from Data Science student on experience with tools. While Data Science students' experience with tools is similar to that of Data Science certificate students. Also, we can use this kind of plot to see what are people from different majors good at.
 
 ##Decision Tree
 We will now look at a decision tree to try and understand if we have the ability to predict what program a student is in only the student's experience with the software programs and tools listed in the survey.
