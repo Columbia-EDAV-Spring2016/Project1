@@ -7,7 +7,7 @@ output: html_document
 
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
 #Set your working directory
-setwd('/Users/dongchunfeng/GitHub/Project1')
+setwd('/Users/ianjohnson/desktop/columbia/edav/project1')
 library(rpart)
 library(rpart.plot)
 library(randomForest)
@@ -19,6 +19,7 @@ library(magrittr)
 library(igraph)
 library(statnet)
 library(gcookbook)
+library(scales)
 ```
 
 
@@ -71,14 +72,14 @@ for(i in 1:114){
   }
 }
 df_clean$Program <- as.factor(Program)
-names(df_clean) [c(4,7:11)] <- c("r_data_modeling_experience","r_graphics_experience",
+names(df_clean) [c(4:5,7:11)] <- c("r_data_modeling_experience","gender","r_graphics_experience",
                                  "r_advanced_multivariate_analysis_experience",
                                  "r_markdown_experience",
                                  "matlab_experience","github_experience")
 ```
 
 
-Copy the dataset for further use and create new variables: num-skills which is the number of skills one claiming he/she masters and prof-skills which is added by the sefl-reporting level of one's experience in certain programming tools to measure his/her proficiency of these tools.
+Copy the dataset for further use and create new variables: num-skills which is the number of skills one claiming he/she masters and prof-skills which is added by the self-reporting level of one's experience in certain programming tools to measure his/her proficiency of these tools (scaled from 0 or "no experience" to 3 or "expert").
 
 ```{r}
 mydata <- df_clean
@@ -102,6 +103,31 @@ mydata$num_skills <- apply(mydata[,12:31], 1, sum)
 mydata$prof_skills <- apply(mydata[,c(4, 7:11)], 1, sum)
 ```
 
+
+## Basic Info
+Here we see the mean of students' reported skills levels. There were 114 total students, and levels ranged on a scale from 0 (experience "none") to 3 (experience "expert"). We can see that students reported being most familiar with R data modeling, and least familiar with matlab:
+```{r echo=FALSE}
+matlab_mean = round(mean(mydata$matlab_experience), 3)
+github_mean = round(mean(mydata$github_experience), 3)
+r_markdown_mean = round(mean(mydata$r_markdown_experience), 3)
+r_multivariate_analysis_mean = round(mean(mydata$r_advanced_multivariate_analysis_experience), 3)
+r_graphics_mean = round(mean(mydata$r_graphics_experience), 3)
+r_data_modeling_mean = round(mean(mydata$r_data_modeling_experience), 3)
+```
+
+  Matlab          |       GitHub       |        R Markdown         |      R Multivariate Analysis       |        R Graphics       |       R Data Modeling
+----------------- | ------------------ |  ------------------------ | ---------------------------------- | ----------------------- | ---------------------------
+ `r matlab_mean`  |   `r github_mean`  |    `r r_markdown_mean`    |  `r r_multivariate_analysis_mean`  |   `r r_graphics_mean`   |   `r r_data_modeling_mean`
+
+
+#### R Data Modeling Experience by gender
+Here we see a breakdown of students' R data modeling experience by gender. We see most of the students have reported experience levels of 2, and are "confident" in their R data modeling skills.
+```{r echo=FALSE}
+ggplot(mydata, aes(r_data_modeling_experience, fill=gender)) + geom_bar(position="dodge")
+```
+
+
+## Further graphical analysis
 Use ggplot to draw kernel distributions, boxplots, joint distribution by contour of num-skills and prof-skills for different programs.
 
 ```{r}
@@ -116,7 +142,7 @@ ggplot(mydata, aes(x=prof_skills, color = Program)) + geom_density()
 ggplot(mydata,aes(x=Program, y=prof_skills, color = Program)) + geom_violin(trim = FALSE) + geom_boxplot(width = 0.1, fill = "black") + stat_summary(fun.y = median, geom = "point")
 ```
 
-These two plots reflect the distributions of the proficiency of skills of students from different programs. Interestingly, Data Science Certifate students tend to report less proficiency of skills than other three groups in terms of median of the distribution.
+These two plots reflect the distributions of the proficiency of skills of students from different programs. Interestingly, Data Science Certificate students tend to report less proficiency of skills than other three groups in terms of median of the distribution.
 The distribution of students from other programs has short tail. Besides the distribution of Data Science Masters(MS_DS) tends to be pretty normal distributed.
 
 
@@ -125,7 +151,7 @@ The distribution of students from other programs has short tail. Besides the dis
 ggplot(mydata, aes(x=num_skills, y=prof_skills)) + stat_density2d(aes(colour = ..level..)) + geom_point() + facet_wrap(~Program, scales  = "free")
 ```
 
-This plot reflects the joint distributions of the proficiency of skills and the number of skills in different student groups. Contour lines represent density of this distribution. From this joint perspective we can see that the distributions of Data Science Certifate students and Data Science Masters(MS_DS) have larger density around "peak" than other two groups.
+This plot reflects the joint distributions of the proficiency of skills and the number of skills in different student groups. Contour lines represent density of this distribution. From this joint perspective we can see that the distributions of Data Science Certificate students and Data Science Masters(MS_DS) have larger density around "peak" than other two groups.
 
 
 ##Differences between Programs - Experience with Tools
