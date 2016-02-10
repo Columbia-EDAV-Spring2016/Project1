@@ -5,12 +5,13 @@ date: "Feb 8, 2016"
 output: html_document
 ---
 
-What I did are chord diagrams that illustrate the relationship inside skills, i.e., the proportion of people who have one skill A still have anther skill B, and the relationship between program and skills.
+A chord diagram should illustrate intuitively the relationship of skills, i.e., the proportion of people who have a skill (e.g. SQL) also have anther skill (e.g. Python). Also it would be good for visualizing the relationship between skills and program of people.
 
-To visualize this relationship, we need to selection features (columns corresponding to skillset questions in our case and program column), split each skill into one new column as bitmap (e.g. if 1 in SQL means familiarity for SQL and 0 means not). 
+### Visualization of program-skills relationship
+To visualize this relationship, we need to selection features (columns corresponding to skillset questions in our case and program column), split each skill into one new column as bitmap (e.g. if 1 in SQL means familiarity for SQL and 0 means not). So the cleaning scripts as describe in previous sectors are used
 
 First I further cleaned the data using following script:
-```{r}
+```{r, echo=FALSE}
 #Set your working directory
 #setwd('Documents/cuw4701_edav/')
 #Load CSV file into Data Frame
@@ -76,9 +77,10 @@ df_bymajor = data.frame(from = rep(rownames(df_cd), times = ncol(df_cd)), to = r
 chordDiagram(df_bymajor)
 ```
 
-So the chord diagram for program to skills is created. Each degree has a corresponding arc in the circle and each chord connects a proportion of students in each program to each skill.
+So the chord diagram for program to skills is created. Each degree has a corresponding arc in the circle and each chord (the colorful thick lines inside the circle) connects a proportion of students in each program to their corresponding each skill.
 
-Then we further transformed the dataset for creating a new chord diagram showing the relationship inner skillset.
+### Visualization of skill-skill relationship
+Then we further transformed the dataset for creating a new chord diagram showing the relationship skill-skill relationship.
 ```{r, fig.high=12, fig.width=8}
 df_skillset = data.frame(matrix(rep(0,dim(df_clean)[2] * dim(df_clean)[2]), nrow=dim(df_clean)[2], ncol=dim(df_clean)[2]))
 colnames(df_skillset) = colnames(df_clean)
