@@ -7,6 +7,7 @@ output: html_document
 
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
 #Set your working directory
+setwd('/Users/dongchunfeng/GitHub/Project1')
 library(rpart)
 library(rpart.plot)
 library(randomForest)
@@ -17,13 +18,11 @@ library(dplyr)
 library(magrittr)
 library(igraph)
 library(statnet)
+library(gcookbook)
 ```
 
-Load the data:
-```{r}
-#Set your working directory
-setwd('/Users/dongchunfeng/GitHub/Project1')
 
+```{r}
 #Load CSV file into Data Frame
 df = read.csv("Survey+Response.csv")
 col.list = c("Matlab", "R", "Github", "Excel", "SQL", "RStudio", "ggplot2", "shell (terminal / command line)", "C/C++", "Python", "Stata", "LaTeX", "XML", "Web: html css js", "google drive (formerly docs)", "Sweave/knitr","dropbox", "SPSS", "regular expressions (grep)", "lattice" )
@@ -59,13 +58,13 @@ Redivide Programs into 4 groups. And rename the super-long names of skill profic
 Program <- rep(0,114)
 for(i in 1:114){
   if(df_clean$Program[i] %in% c("Data Science", "IDSE (master)", "Ms in ds", "MSDS")){
-    Program[i] <- "Data_Science_Master"
+    Program[i] <- "MS_DS"
 }
   else if(df_clean$Program[i] == "Data Science Certification"){
-    Program[i] <- "Data_Science_Certification"
+    Program[i] <- "Certificate_DS"
   }
   else if(df_clean$Program[i] == "Statistics (master)"){
-    Program[i] <- "Statistics_Master"
+    Program[i] <- "MA_Stat"
   }
   else{
    Program[i] <- "Others"
@@ -106,14 +105,27 @@ mydata$prof_skills <- apply(mydata[,c(4, 7:11)], 1, sum)
 Use ggplot to draw kernel distributions, boxplots, joint distribution by contour of num-skills and prof-skills for different programs.
 
 ```{r}
-library('ggplot2')
 ggplot(mydata, aes(x=num_skills, color = Program)) + geom_density()
-library('gcookbook')
 ggplot(mydata,aes(x=Program, y=num_skills, color = Program)) + geom_violin(trim = FALSE) + geom_boxplot(width = 0.1, fill = "black") + stat_summary(fun.y = median, geom = "point")
+```
+
+These two plots reflect the distributions of the number of skills of students from different programs. We can see that these four distributions are all skewed to the right while the distributions of Data Science Masters(MS_DS) and students from other programs(Others) have long tails.
+
+```{r}
 ggplot(mydata, aes(x=prof_skills, color = Program)) + geom_density()
 ggplot(mydata,aes(x=Program, y=prof_skills, color = Program)) + geom_violin(trim = FALSE) + geom_boxplot(width = 0.1, fill = "black") + stat_summary(fun.y = median, geom = "point")
+```
+
+These two plots reflect the distributions of the proficiency of skills of students from different programs. Interestingly, Data Science Certifate students tend to report less proficiency of skills than other three groups in terms of median of the distribution.
+The distribution of students from other programs has short tail. Besides the distribution of Data Science Masters(MS_DS) tends to be pretty normal distributed.
+
+
+
+```{r}
 ggplot(mydata, aes(x=num_skills, y=prof_skills)) + stat_density2d(aes(colour = ..level..)) + geom_point() + facet_wrap(~Program, scales  = "free")
 ```
+
+This plot reflects the joint distributions of the proficiency of skills and the number of skills in different student groups. Contour lines represent density of this distribution. From this joint perspective we can see that the distributions of Data Science Certifate students and Data Science Masters(MS_DS) have larger density around "peak" than other two groups.
 
 
 ##Differences between Programs - Experience with Tools
