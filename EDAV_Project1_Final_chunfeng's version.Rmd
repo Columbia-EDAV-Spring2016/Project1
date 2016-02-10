@@ -4,7 +4,7 @@ author: "Team"
 date: "January 28, 2016"
 output: html_document
 ---
-
+## Exploratory Analysis
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
 #Set your working directory
 setwd('/Users/dongchunfeng/GitHub/Project1')
