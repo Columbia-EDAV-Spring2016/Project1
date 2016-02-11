@@ -295,7 +295,7 @@ node_layout = matrix(c(3, 7, # Matlab
                      nrow=20, byrow=TRUE)
 
 par(mfrow=c(1,1))
-plot.igraph(frnet, layout=node_layout, edge.arrow.size = 0.25,edge.arrow.width = 1.5,
+plot.igraph(frnet, layout=node_layout, edge.arrow.size = 1,edge.arrow.width = 1.5,
             vertex.size=sk_sum/4, vertex.label.color="black", 
             edge.width = E(frnet)$weight/15, edge.label = E(frnet)$weight)
 
