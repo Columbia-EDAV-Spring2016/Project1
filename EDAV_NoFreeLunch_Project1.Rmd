@@ -2,7 +2,7 @@
 title: "Investigation of EDAV Skills and Programs"
 author: "Team - No Free Lunch"
 date: "February 11, 2016"
-output: pdf_document
+output: html_document
 ---
 ## Project Description
 Within this document we will be showing multiple visualizations and explanations of skills that the Spring EDAV 2016 class have. We begin with intial plots to gain an understanding of what the population of the class looks like and then work towards more complex views of similar subjects. In the end we will work to attempt at predicting the program of a test group of students by looking at their skill attributes. 
@@ -133,21 +133,23 @@ r_data_modeling_mean = round(mean(mydata$r_data_modeling_experience), 3)
 
 #### R Data Modeling Experience by gender
 Here we see a breakdown of students' R data modeling experience by gender. We see most of the students have reported experience levels of 2, and are "confident" in their R data modeling skills.
-```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center'}
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center', fig.height=4, fig.width=6}
 ggplot(mydata, aes(r_data_modeling_experience, fill=gender)) + geom_bar(position="dodge")
 ```
+
+\newpage
 
 ## Further graphical analysis
 Use ggplot to draw kernel distributions, boxplots, joint distribution by contour of num-skills and prof-skills for different programs. This will help gives us a better understanding of the breakdown of our class.
 
-```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center'}
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center', fig.height=4, fig.width=6}
 ggplot(mydata, aes(x=num_skills, color = Program)) + geom_density()
 ggplot(mydata,aes(x=Program, y=num_skills, color = Program)) + geom_violin(trim = FALSE) + geom_boxplot(width = 0.1, fill = "black") + stat_summary(fun.y = median, geom = "point")
 ```
 
 These two plots reflect the distributions of the number of skills of students from different programs. We can see that these four distributions are all skewed to the right while the distributions of Data Science Masters(MS_DS) and students from other programs(Others) have long tails.
 
-```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center'}
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center', fig.height=4, fig.width=6}
 ggplot(mydata, aes(x=prof_skills, color = Program)) + geom_density()
 ggplot(mydata,aes(x=Program, y=prof_skills, color = Program)) + geom_violin(trim = FALSE) + geom_boxplot(width = 0.1, fill = "black") + stat_summary(fun.y = median, geom = "point")
 ```
@@ -160,7 +162,6 @@ ggplot(mydata, aes(x=num_skills, y=prof_skills)) + stat_density2d(aes(colour = .
 ```
 
 This plot reflects the joint distributions of the proficiency of skills and the number of skills in different student groups. Contour lines represent density of this distribution. From this joint perspective we can see that the distributions of Data Science Certificate students and Data Science Masters(MS_DS) have larger density around "peak" than other two groups.
-
 
 ##Network graph on percentage of having each skill
 
@@ -304,6 +305,8 @@ plot.igraph(frnet, layout=node_layout, edge.arrow.size = 1,edge.arrow.width = 1.
 
 ```
 
+\newpage
+
 ## Fundamental graphic analysis on skillset
 A chord diagram could illustrate intuitively the relationship of skills, i.e., the proportion of people who have a skill (e.g. SQL) also have anther skill (e.g. Python). Also it would be good for visualizing the relationship between skills and program of people. Thus it would provid us with basic guidance towards deeper analysis.
 
@@ -348,6 +351,7 @@ chordDiagram(df_mwbymajor, grid.col = grid.col)
 
 So the chord diagram for program to skills is created. Each degree has a corresponding arc in the circle and each chord (the colorful thick lines inside the circle) connects a proportion of students in each program to their corresponding each skill.
 
+\newpage
 
 #### Visualization of skill-skill relationship
 Then we further transformed the dataset for creating a new chord diagram showing the relationship skill-skill relationship.
@@ -374,6 +378,7 @@ chordDiagram(df_mwbyskill, grid.col = grid.col)
 ```
 
 
+\newpage
 
 ##Differences between Programs - Experience with Tools
 
@@ -531,7 +536,7 @@ radar plot ref : http://www.statisticstoproveanything.com/2013/11/spider-web-plo
 There are two plots made. One compares Stats with Data Science and the other compares the Data Science master with Data Science certificates. We chose these these majors because the majority of people are in these majors. We can compare as many majors as we want if needed. We chose the top five tools identified in the random forest classifier we made for classifying majors. On the plot the further the line is from the center, the larger the proportion of people who know how to use the tool. The range for variables is from 0 to 1 (proportion). We can clearly see that the patterns for Stats and Data Science are different. The pattern for Data Science master is similar to the pattern for Data Science certificates. These results show that Stats students are different from Data Science student on experience with tools. While Data Science students' experience with tools is similar to that of Data Science certificate students. Also, we can use this kind of plot to see what are people from different majors good at.
 
 
-
+\newpage
 
 ##Decision Trees
 We will now look at a decision tree to try and understand if we have the ability to predict what program a student is in only the student's experience with the software programs and tools listed in the survey.
@@ -630,7 +635,7 @@ grid.arrange(A1,A2,A3,A4,ncol=2)
 Overall we can see a increase in the performance of the predictions with different trees. While we saw a decrease in when `set.seed() = 1` for all of the other case we saw an increase as expected. Most likely if we were to recieve more training data we could expect to improve on our prediction. On average over this small training set we were 52.17% accurate. 
 
 To understand how we did we can look at the percentages of all of the majors
-```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center'}
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center', fig.height=5, fig.height=5}
 
 degree_percent = summary(df_clean$Program)/nrow(df_clean)
 pl_df = data.frame(degree_percent)
