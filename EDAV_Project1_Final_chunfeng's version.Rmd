@@ -241,24 +241,13 @@ Now separate majors and do some calculation over the skills
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
 
 separate_major <- function(survey){
-  IDSE = which(survey$Program == "IDSE (master)")
-  Other = which(survey$Program == "Other masters")
-  DSC = which(survey$Program == "Data Science Certification")
-  STATS = which(survey$Program == "Statistics (master)")
-  QMSS = which(survey$Program == "QMSS")
-  DS = which(survey$Program == "Data Science")
-  MS_DS = which(survey$Program == "Ms in ds")
-  MS_QMSS = which(survey$Program == "QMSS (master)")
-  PHD = which(survey$Program == "Ph.D.")
-  APP_MATH = which(survey$Program == "Applied Math")
-  PHD_BIO = which(survey$Program == "PhD Biomedical Informatics")
-  MSDS = which(survey$Program == "MSDS")
+  MSDS = which(survey$Program == "MS_DS")
+  Other = which(survey$Program == "Others")
+  DSC = which(survey$Program == "Certificate_DS")
+  STATS = which(survey$Program == "MA_Stat")
 
-  
-  MSDS = c(MSDS, IDSE, DS, MS_DS)
-  QMSS = c(QMSS, MS_QMSS)
-  PHD = c(PHD, PHD_BIO)
-  a = list(MSDS, QMSS, STATS, PHD, APP_MATH, Other, DSC)
+
+  a = list(MSDS, STATS, Other, DSC)
   return(a) 
 }
 attempt = separate_major(df_clean)
@@ -290,12 +279,12 @@ MSDS_result = data.frame(rbind(MSDS_Skills[[2]], MSDS_Skills[[3]]))
 colnames(MSDS_result) = important_skills
 
 
-STATS = df_clean[attempt[[3]],]
+STATS = df_clean[attempt[[2]],]
 STATS_Skills = skill_distri(STATS, important_skills)
 STATS_result = data.frame(rbind(STATS_Skills[[2]], STATS_Skills[[3]]))
 colnames(STATS_result) = important_skills
 
-DSC = df_clean[attempt[[7]],]
+DSC = df_clean[attempt[[4]],]
 DSC_Skills = skill_distri(DSC, important_skills)
 DSC_result = data.frame(rbind(DSC_Skills[[2]], DSC_Skills[[3]]))
 colnames(DSC_result) = important_skills
