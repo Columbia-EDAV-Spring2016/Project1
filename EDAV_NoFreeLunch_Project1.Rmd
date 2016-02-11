@@ -1,15 +1,15 @@
 ---
 title: "Investigation of EDAV Skills and Programs"
 author: "Team - No Free Lunch"
-date: "January 28, 2016"
-output: html_document
+date: "February 11, 2016"
+output: pdf_document
 ---
 ## Project Description
 Within this document we will be showing multiple visualizations and explanations of skills that the Spring EDAV 2016 class have. We begin with intial plots to gain an understanding of what the population of the class looks like and then work towards more complex views of similar subjects. In the end we will work to attempt at predicting the program of a test group of students by looking at their skill attributes. 
 
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
 #Set your working directory
-#setwd('/Users/bobminnich/Documents/Columbia/Courses/DataVisualization/Project1/')
+#setwd('/Users/someone/Documents/Columbia/Courses/DataVisualization/Project1/')
 ```
 
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
@@ -163,6 +163,9 @@ This plot reflects the joint distributions of the proficiency of skills and the 
 
 
 ##Network graph on percentage of having each skill
+
+This graph shows the information about percentage of students who chose each skill. 
+
 Each vertex represents a skill. The vertex label shows the name of the skill and the percentage of students who chose each skill from the entire students. The higher the percentage is, the bigger the vertex is. The color of vertex represents the area of the skill. We classified each skill into three areas: Computer Science (Yellow), Statistics (Blue), and General (Green). 
 
 Edge (A->B) show that knowing that the student chose a skill – A, he has higher probability of also having skill B. For example, the probability of a student having SQL is 49%, but when we know that the student chose web, the probability of the student also having SQL is 88%. 
@@ -170,9 +173,9 @@ We set a threshold of 20, to only show bigger differences. For example, percenta
 
 Another interesting characteristic is that the rare skills (represented by smaller vertex sizes) such as Sweave_knitr, lattice, and Regular expression have thicker edges with many other skills. A possible explanation is that these skills are rare because they are more advanced skills. Then, it makes sense for a student who have advanced skills to have many other skills as well.
 
-We can also see that skills in a same area tend to have more number of edges. However, in case of general skills – Google Drive, Dropbox, Github, and LaTeX, they seem to have stronger relationships with computer science skills then statistics skills. This makes sense, because students with computer science background tend to use these type of skills more often than others. 
+We can also see that skills in same area tend to have more number of edges among them. However, in case of general skills – Google Drive, Dropbox, Github, and LaTeX, they seem to have stronger relationships with computer science skills then statistics skills. This makes sense, because students with computer science background tend to use these type of skills more often than others. 
 
-In case of Python, it has strong relationship only with lattice. This might be because the majority of students are data science masters and data science certification, and majority of them took algorithm class last semester, where we used Python. I think because majority of students used Python regardless of their previous experience or background, Python didn’t show any strong relationship with other skill.
+In case of Python, it has strong relationship only with lattice. This might be because the majority of students are data science masters and data science certification, and majority of them took algorithm class last semester, where they used Python. I think because majority of students used Python regardless of their previous experience or background, Python didn’t show any strong relationship with other skill.
 
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
 # Modified skill names
@@ -258,7 +261,7 @@ for(sk1 in sk_list) {
 }
 
 ```
-This graph shows the information about percentage of students who chose each skill. 
+
 
 ```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center', fig.height=8, fig.width=8}
 
