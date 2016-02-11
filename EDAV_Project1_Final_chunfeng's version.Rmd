@@ -224,69 +224,33 @@ ggplot(mydata, aes(x=num_skills, y=prof_skills)) + stat_density2d(aes(colour = .
 
 This plot reflects the joint distributions of the proficiency of skills and the number of skills in different student groups. Contour lines represent density of this distribution. From this joint perspective we can see that the distributions of Data Science Certificate students and Data Science Masters(MS_DS) have larger density around "peak" than other two groups.
 
-
 ##Differences between Programs - Experience with Tools
 
-I created a visualization that shows the information of experience with tools across majors. There are two plots made. One compares stats with data science and the other compares the data science master with data science certificates. I chose these two majors because the majority of people are in these two majors. We can compare as many majors as we want if needed. The graph shows for each tool what is the proportion of people who know how to use the tool. I choose the top five tools identified in the random forest classifier. We can clearly see that the patterns for two majors are different. Also, we can use this kind of plot to see what are people from different good at.
+We created a visualization that shows the information of experience with tools across majors. The visualization is called radar plot. It will help us to compare majors through the difference in experience with tools. The graph will show for each tool what is the proportion of people who know how to use the tool. 
 
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
-survey = read.csv("Survey+Response.csv",na.strings = "NA")
-unique_majors = unique(survey$Program)
+unique_majors = unique(df_clean$Program)
 
 ```
 
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
-df = read.csv("Survey+Response.csv")
-
-col.list = c("Matlab", "R", "Github", "Excel", "SQL", "RStudio", "ggplot2", "shell (terminal / command line)", "C/C++", "Python", "Stata", "LaTeX", "XML", "Web: html css js", "google drive (formerly docs)", "Sweave/knitr","dropbox", "SPSS", "regular expressions (grep)", "lattice" )
-
 #these are the top five tools defined in the Bob's random forest
 important_skills = c("Python", "Github", "google drive (formerly docs)", "Matlab", "ggplot2")
-
-
-#Create colums initializing at 0
-
-df[,col.list] = 0
-for(i in col.list){
-  #Need an If Statement because of R vs RStudio. 
-    if(i == "R"){ 
-      #Use Reg expressions "R,|R$" which looks for "R," and for "R$" which means there is nothing after R (line 87 caused this issue)
-      fnd = "R,|R$"
-      #try to find fnd within the vector, return Row # if True
-      rows = grep(pattern = fnd, x = df$Experiences.with.tools)
-    }else{
-      #Same as above
-      fnd = paste(i, sep = "")
-      rows = grep(pattern = fnd, x = df$Experiences.with.tools, fixed = TRUE)
-      }
-    df[rows,i] = 1
-}
 ```
 Now separate majors and do some calculation over the skills
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
 
 separate_major <- function(survey){
-  IDSE = which(survey$Program == "IDSE (master)")
-  Other = which(survey$Program == "Other masters")
-  DSC = which(survey$Program == "Data Science Certification")
-  STATS = which(survey$Program == "Statistics (master)")
-  QMSS = which(survey$Program == "QMSS")
-  DS = which(survey$Program == "Data Science")
-  MS_DS = which(survey$Program == "Ms in ds")
-  MS_QMSS = which(survey$Program == "QMSS (master)")
-  PHD = which(survey$Program == "Ph.D.")
-  APP_MATH = which(survey$Program == "Applied Math")
-  PHD_BIO = which(survey$Program == "PhD Biomedical Informatics")
-  MSDS = which(survey$Program == "MSDS")
+  MSDS = which(survey$Program == "MS_DS")
+  Other = which(survey$Program == "Others")
+  DSC = which(survey$Program == "Certificate_DS")
+  STATS = which(survey$Program == "MA_Stat")
 
-  
-  MSDS = c(MSDS, IDSE, DS, MS_DS)
-  QMSS = c(QMSS, MS_QMSS)
-  PHD = c(PHD, PHD_BIO)
-  a = list(MSDS, QMSS, STATS, PHD, APP_MATH, Other, DSC)
+
+  a = list(MSDS, STATS, Other, DSC)
   return(a) 
 }
-attempt = separate_major(df)
+attempt = separate_major(df_clean)
 
 
 #col.list is the list of skills, skill is the output of function skill_distri, then skill[[1]] is the ratio of people who know the skill, skill[[2]] is number of people who know the skill, skill[[3]] is the number of people who do not know the skill
@@ -309,18 +273,18 @@ skill_distri <- function(major, col.list){
 }
 
 
-MSDS = df[attempt[[1]],]
+MSDS = df_clean[attempt[[1]],]
 MSDS_Skills = skill_distri(MSDS, important_skills)
 MSDS_result = data.frame(rbind(MSDS_Skills[[2]], MSDS_Skills[[3]]))
 colnames(MSDS_result) = important_skills
 
 
-STATS = df[attempt[[3]],]
+STATS = df_clean[attempt[[2]],]
 STATS_Skills = skill_distri(STATS, important_skills)
 STATS_result = data.frame(rbind(STATS_Skills[[2]], STATS_Skills[[3]]))
 colnames(STATS_result) = important_skills
 
-DSC = df[attempt[[7]],]
+DSC = df_clean[attempt[[4]],]
 DSC_Skills = skill_distri(DSC, important_skills)
 DSC_result = data.frame(rbind(DSC_Skills[[2]], DSC_Skills[[3]]))
 colnames(DSC_result) = important_skills
@@ -414,6 +378,8 @@ legend("bottomright", lty = c(1, 2), lwd = 2, col = c("red", "blue"), c("MS.Data
 
 ```
 radar plot ref : http://www.statisticstoproveanything.com/2013/11/spider-web-plots-in-r.html
+
+There are two plots made. One compares Stats with Data Science and the other compares the Data Science master with Data Science certificates. We chose these these majors because the majority of people are in these majors. We can compare as many majors as we want if needed. We chose the top five tools identified in the random forest classifier we made for classifying majors. On the plot the further the line is from the center, the larger the proportion of people who know how to use the tool. The range for variables is from 0 to 1 (proportion). We can clearly see that the patterns for Stats and Data Science are different. The pattern for Data Science master is similar to the pattern for Data Science certificates. These results show that Stats students are different from Data Science student on experience with tools. While Data Science students' experience with tools is similar to that of Data Science certificate students. Also, we can use this kind of plot to see what are people from different majors good at.
 
 
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
