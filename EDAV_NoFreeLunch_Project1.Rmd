@@ -2,13 +2,17 @@
 title: "Investigation of EDAV Skills and Programs"
 author: "Team - No Free Lunch"
 date: "January 28, 2016"
-output: pdf_document
+output: html_document
 ---
 ## Project Description
 Within this document we will be showing multiple visualizations and explanations of skills that the Spring EDAV 2016 class have. We begin with intial plots to gain an understanding of what the population of the class looks like and then work towards more complex views of similar subjects. In the end we will work to attempt at predicting the program of a test group of students by looking at their skill attributes. 
 
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
 #Set your working directory
+#setwd('/Users/bobminnich/Documents/Columbia/Courses/DataVisualization/Project1/')
+```
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
 library(rpart)
 library(rpart.plot)
 library(randomForest)
@@ -26,10 +30,6 @@ library(gridExtra)
 library(qgraph)
 ```
 
-```{r, echo=FALSE, warning = FALSE, message=FALSE}
-#Set your working directory
-setwd('/Users/bobminnich/Documents/Columbia/Courses/DataVisualization/Project1/')
-```
 
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
 #Load CSV file into Data Frame
