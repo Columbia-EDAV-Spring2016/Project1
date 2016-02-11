@@ -1,0 +1,656 @@
+---
+title: "Investigation of EDAV Skills and Programs"
+author: "Team - No Free Lunch"
+date: "January 28, 2016"
+output: pdf_document
+---
+## Project Description
+Within this document we will be showing multiple visualizations and explanations of skills that the Spring EDAV 2016 class have. We begin with intial plots to gain an understanding of what the population of the class looks like and then work towards more complex views of similar subjects. In the end we will work to attempt at predicting the program of a test group of students by looking at their skill attributes. 
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
+#Set your working directory
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(caret)
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(magrittr)
+library(igraph)
+library(statnet)
+library(gcookbook)
+library(scales)
+library(circlize)
+library(gridExtra)
+library(qgraph)
+```
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
+#Set your working directory
+setwd('/Users/bobminnich/Documents/Columbia/Courses/DataVisualization/Project1/')
+```
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
+#Load CSV file into Data Frame
+df = read.csv("Survey+Response.csv")
+col.list = c("Matlab", "R", "Github", "Excel", "SQL", "RStudio", "ggplot2", "shell (terminal / command line)", "C/C++", "Python", "Stata", "LaTeX", "XML", "Web: html css js", "google drive (formerly docs)", "Sweave/knitr","dropbox", "SPSS", "regular expressions (grep)", "lattice")
+
+#Count Columns with NAs
+na.check = df%>%is.na() %>% apply(2,sum)
+
+#Remove NAs
+df_clean = df[,which(na.check==0)]
+
+#Create colums initializing at 0
+df_clean[,col.list] = 0
+
+for(i in col.list){
+  #Need an If Statement because of R vs RStudio. 
+    if(i == "R"){ 
+      #Use Reg expressions "R,|R$" which looks for "R," and for "R$" which means there is nothing after R (line 87 caused this issue)
+      fnd = "R,|R$"
+      #try to find fnd within the vector, return Row # if True
+      rows = grep(pattern = fnd, x = df_clean$Experiences.with.tools)
+    }else{
+      #Same as above
+      fnd = paste(i, sep = "")
+      rows = grep(pattern = fnd, x = df_clean$Experiences.with.tools, fixed = TRUE)
+      }
+    df_clean[rows,i] = 1
+}
+```
+
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
+#Redivide Programs into 4 groups. And rename the super-long names of skill proficiency.
+
+Program <- rep(0,114)
+for(i in 1:114){
+  if(df_clean$Program[i] %in% c("Data Science", "IDSE (master)", "Ms in ds", "MSDS")){
+    Program[i] <- "MS_DS"
+}
+  else if(df_clean$Program[i] == "Data Science Certification"){
+    Program[i] <- "Certificate_DS"
+  }
+  else if(df_clean$Program[i] == "Statistics (master)"){
+    Program[i] <- "MA_Stat"
+  }
+  else{
+   Program[i] <- "Others"
+  }
+}
+df_clean$Program <- as.factor(Program)
+names(df_clean) [c(4:5,7:11)] <- c("r_data_modeling_experience","gender","r_graphics_experience",
+                                 "r_advanced_multivariate_analysis_experience",
+                                 "r_markdown_experience",
+                                 "matlab_experience","github_experience")
+```
+
+
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
+#Copy the dataset for further use and create new variables: num-skills which is the number of skills one claiming he/she masters and prof-skills which is added by the self-reporting level of one's experience in certain programming tools to measure his/her proficiency of these tools (scaled from 0 or "no experience" to 3 or "expert").
+
+mydata <- df_clean
+convert_prof <- function(x){
+  if(x=="None"){
+    x <- 0
+  }
+  else if(x=="A little"){
+    x <- 1
+  }
+  else if(x=="Confident"){
+    x <- 2
+  }
+  else if(x=="Expert"){
+    x <- 3
+  }
+}
+tmp <- apply(mydata[c(4,7:11)], c(1,2), convert_prof)
+mydata[c(4, 7:11)] <- tmp
+mydata$num_skills <- apply(mydata[,12:31], 1, sum)
+mydata$prof_skills <- apply(mydata[,c(4, 7:11)], 1, sum)
+mydata$gender[mydata$gender == ""] <- "doesn't matter"
+```
+
+
+## Basic Info
+Here we see the mean of students' reported skills levels. There were 114 total students, and levels ranged on a scale from 0 (experience "none") to 3 (experience "expert"). We can see that students reported being most familiar with R data modeling, and least familiar with matlab:
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
+matlab_mean = round(mean(mydata$matlab_experience), 3)
+github_mean = round(mean(mydata$github_experience), 3)
+r_markdown_mean = round(mean(mydata$r_markdown_experience), 3)
+r_multivariate_analysis_mean = round(mean(mydata$r_advanced_multivariate_analysis_experience), 3)
+r_graphics_mean = round(mean(mydata$r_graphics_experience), 3)
+r_data_modeling_mean = round(mean(mydata$r_data_modeling_experience), 3)
+```
+
+  Matlab          |       GitHub       |        R Markdown         |      R Multivariate Analysis       |        R Graphics       |       R Data Modeling
+----------------- | ------------------ |  ------------------------ | ---------------------------------- | ----------------------- | ---------------------------
+ `r matlab_mean`  |   `r github_mean`  |    `r r_markdown_mean`    |  `r r_multivariate_analysis_mean`  |   `r r_graphics_mean`   |   `r r_data_modeling_mean`
+
+
+#### R Data Modeling Experience by gender
+Here we see a breakdown of students' R data modeling experience by gender. We see most of the students have reported experience levels of 2, and are "confident" in their R data modeling skills.
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center'}
+ggplot(mydata, aes(r_data_modeling_experience, fill=gender)) + geom_bar(position="dodge")
+```
+
+## Further graphical analysis
+Use ggplot to draw kernel distributions, boxplots, joint distribution by contour of num-skills and prof-skills for different programs. This will help gives us a better understanding of the breakdown of our class.
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center'}
+ggplot(mydata, aes(x=num_skills, color = Program)) + geom_density()
+ggplot(mydata,aes(x=Program, y=num_skills, color = Program)) + geom_violin(trim = FALSE) + geom_boxplot(width = 0.1, fill = "black") + stat_summary(fun.y = median, geom = "point")
+```
+
+These two plots reflect the distributions of the number of skills of students from different programs. We can see that these four distributions are all skewed to the right while the distributions of Data Science Masters(MS_DS) and students from other programs(Others) have long tails.
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center'}
+ggplot(mydata, aes(x=prof_skills, color = Program)) + geom_density()
+ggplot(mydata,aes(x=Program, y=prof_skills, color = Program)) + geom_violin(trim = FALSE) + geom_boxplot(width = 0.1, fill = "black") + stat_summary(fun.y = median, geom = "point")
+```
+
+These two plots reflect the distributions of the proficiency of skills of students from different programs. Interestingly, Data Science Certificate students tend to report less proficiency of skills than other three groups in terms of median of the distribution.
+The distribution of students from other programs has short tail. Besides the distribution of Data Science Masters(MS_DS) tends to be pretty normal distributed.
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center'}
+ggplot(mydata, aes(x=num_skills, y=prof_skills)) + stat_density2d(aes(colour = ..level..)) + geom_point() + facet_wrap(~Program, scales  = "free")
+```
+
+This plot reflects the joint distributions of the proficiency of skills and the number of skills in different student groups. Contour lines represent density of this distribution. From this joint perspective we can see that the distributions of Data Science Certificate students and Data Science Masters(MS_DS) have larger density around "peak" than other two groups.
+
+
+##Network graph on percentage of having each skill
+Each vertex represents a skill. The vertex label shows the name of the skill and the percentage of students who chose each skill from the entire students. The higher the percentage is, the bigger the vertex is. The color of vertex represents the area of the skill. We classified each skill in to three areas: Computer Science (Yellow), Statistics (Blue), and General (Green). 
+
+Edge (A->B) show that knowing that the student chose a skill – A, he has higher probability of also having skill B. For example, the probability of a student having SQL is 49%, but when we know that the student chose web, the probability of the student also having SQL is 88%. 
+We set a threshold of 20, to only show bigger differences. For example, percentage of students who chose RStudio is 76%, and percentage of students who chose RStudio among who chose R is 90%. Even though 90% looks very high, because the difference of percentage is 14%, that doesn’t show on this graph.
+
+Another interesting characteristic is that the rare skills (represented by smaller vertex sizes) such as Sweave_knitr, lattice, and Regular expression have thicker edges with many other skills. A possible explanation is that these skills are rare because they are more advanced skills. Then, it makes sense for a student who have advanced skills to have many other skills as well.
+
+We can also see that skills in a same area tend to have more number of edges. However, in case of general skills – Google Drive, Dropbox, Github, and LaTeX, they seem to have stronger relationships with computer science skills then statistics skills. This makes sense, because students with computer science background tend to use these type of skills more often than others. 
+
+In case of Python, it has strong relationship only with lattice. This might be because the majority of students are data science masters and data science certification, and majority of them took algorithm class last semester, where we used Python. I think because majority of students used Python regardless of their previous experience or background, Python didn’t show any strong relationship with other skill.
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
+# Modified skill names
+sk_list =c("Matlab", "R", "Github", "Excel", "SQL", 
+           "RStudio", "ggplot2", "Shell", "C_CPP", "Python", 
+           "Stata", "LaTeX", "XML", "Web", "Google Drive", 
+           "Sweave_knitr", "Dropbox", "SPSS", "Regular Expression", "lattice")
+
+# Category of each skill set, we can adjust as needed. (ST: Statistics, GE: General, CS: Computer Science)
+area_list <- c("ST", "ST", "GE", "ST", "CS", 
+               "ST", "ST", "CS", "CS", "CS", 
+               "ST", "GE", "CS", "CS", "GE", 
+               "ST", "GE", "ST", "CS", "ST")
+area_color <- c("SkyBlue", "SkyBlue", "Green", "SkyBlue", "Yellow",
+                "SkyBlue", "SkyBlue", "Yellow", "Yellow", "Yellow",
+                "SkyBlue", "Green", "Yellow", "Yellow", "Green",
+                "SkyBlue", "Green", "SkyBlue", "Yellow", "SkyBlue")
+
+df_for_network = data.frame(df_clean)
+colnames(df_for_network)[c(12:31)] <- sk_list   
+
+sk_sum <- apply(df_for_network[12:31], 2, sum) # Total number of students who chose it
+sk_set <- data.frame(sk_sum, round(sk_sum/nrow(df_for_network)*100, 0), area_list, area_color) # Summary of skill set
+colnames(sk_set) <- c("Number of Students", "Percentage of Students", "Area", "Vertex Color")
+
+num_student = nrow(df_for_network)
+num_sk = length(sk_list)
+
+# (1) Adjacency matrix ((A, B): the number of student selected both A and B skills)
+sk_rel = data.frame(matrix(rep(0,num_sk*num_sk), ncol = num_sk, nrow = num_sk))
+colnames(sk_rel) = sk_list
+rownames(sk_rel) = sk_list
+
+for(i in 1:num_student) {
+  for(sk1 in sk_list) {
+    for(sk2 in sk_list) {
+      if((df_for_network[i, sk1] == 1 && df_for_network[i, sk2] == 1) && (sk1 != sk2)) {
+        sk_rel[sk1, sk2] = sk_rel[sk1, sk2] + 1
+        # Set weight between same skill (Matlab, Matlab) as 0
+      }
+    }
+  }
+}
+
+# (2) Adjacency matrix ((A, B): % of students who chose B among students who chose A = Pr(B|A))
+sk_per = data.frame(matrix(rep(0,num_sk*num_sk), ncol = num_sk, nrow = num_sk))
+colnames(sk_per) = sk_list
+rownames(sk_per) = sk_list
+
+for(sk1 in sk_list) {
+  for(sk2 in sk_list) {
+    if(sk1 != sk2) {
+      sk_per[sk1, sk2] = round(sk_rel[sk1, sk2] / sk_set[sk1, 1] * 100, 0)
+      # (Matlab, R) : % of students who chose R among the student who chose Matlab = Pr(R|Matlab)
+    }
+    else {
+      sk_per[sk1, sk2] = sk_set[sk1, 2]
+      # (Matlab, Matlab) : % of students who chose Matlab
+    }
+  }
+}
+
+# (3) Adjacency matrix (Same as (2), but only shows (A, B) when (A, B) - (B, B) > threshold)
+# It means knowing that the student chose A, he has higher probability of also having B than 
+# the probability of having B without the information
+
+sk_dif = data.frame(matrix(rep(0,num_sk*num_sk), ncol = num_sk, nrow = num_sk))
+colnames(sk_dif) = sk_list
+rownames(sk_dif) = sk_list
+dif_cri = 20 # Threshold for choosing which edge to show
+
+for(sk1 in sk_list) {
+  for(sk2 in sk_list) {
+    if(sk1 != sk2) {
+      if(sk_per[sk1, sk2]-sk_per[sk2, sk2] > dif_cri) 
+      {
+        sk_dif[sk1, sk2] = round(sk_per[sk1, sk2], 0)
+        # This value is 0, if difference is below dif_cri. It's to show only significant differences.
+        # If dif_cri=20, it only shows edges with difference of more than 20.
+      }
+    }
+  }
+}
+
+```
+This graph shows the information about percentage of students who chose each skill. 
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center', fig.height=8, fig.width=8}
+
+fradj = as.matrix(sk_dif)
+frnet = graph.adjacency(fradj, weight=TRUE, mode = "directed")
+
+V(frnet)$label = paste(rownames(sk_set), '(', sk_set$`Percentage of Students`, ')')
+V(frnet)$color = area_color # Color of vertices
+E(frnet)$arrow.mode = ">" # forward arrow
+E(frnet)$curved = 0.5 # make edges curved
+
+# Manually setting location of each vertex. 
+# (a, b), a: column. start from the left, b: row, start from the bottom
+node_layout = matrix(c(3, 7, # Matlab
+                      11, 7, # R
+                      12, 2, # Github
+                      13, 7, # Excel
+                      6, 1, # SQL
+                      15, 6, # RStudio
+                      9, 4, # ggplot2
+                      10, 1, # Shell
+                      6, 6, # C_CPP
+                      15, 5, # Python
+                      9, 8, # Stata
+                      15, 3, # LaTeX
+                      6, 5, # XML
+                      1, 2, # Web
+                      3, 6, # Google Drive
+                      9, 6, # Sweave_knitr
+                      1, 5, # Dropbox
+                      6, 8, # SPSS
+                      3, 3, # Regular Expression
+                      13, 5), # lattice
+                     nrow=20, byrow=TRUE)
+
+par(mfrow=c(1,1))
+plot.igraph(frnet, layout=node_layout, edge.arrow.size = 0.25,edge.arrow.width = 1.5,
+            vertex.size=sk_sum/4, vertex.label.color="black", 
+            edge.width = E(frnet)$weight/15, edge.label = E(frnet)$weight)
+
+```
+
+## Fundamental graphic analysis on skillset
+A chord diagram could illustrate intuitively the relationship of skills, i.e., the proportion of people who have a skill (e.g. SQL) also have anther skill (e.g. Python). Also it would be good for visualizing the relationship between skills and program of people. Thus it would provid us with basic guidance towards deeper analysis.
+
+
+#### Visualization of program-skills relationship
+To visualize this relationship, we need to selection features (columns corresponding to skillset questions in our case and program column), split each skill into one new column as bitmap (e.g. if 1 in SQL means familiarity for SQL and 0 means not). So the cleaning scripts as describe in previous sectors are used. Here df_clean is further extracted and transformed into our desired data frame.
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
+separate_major <- function(survey){
+  IDSE = which(survey$Program == "MS_DS")
+  Other = which(survey$Program == "Others")
+  DSC = which(survey$Program == "Certificate_DS")
+  STATS = which(survey$Program == "MA_Stat")
+  
+  a = list(IDSE, DSC, STATS, Other)
+  return(a) 
+}
+```
+
+```{r, fig.align='center', fig.height=6, fig.width=6, warning=FALSE, echo=FALSE, message=FALSE}
+# filter features
+df_mw <- df_clean[,c(12:31)]
+colnames(df_mw)[8] = 'Shell'
+colnames(df_mw)[14] = 'Web'
+colnames(df_mw)[15] = 'Google Doc'
+df_mw = df_mw[,-c(13, 16:20)]
+
+majors = separate_major(df_clean)
+IDSE = colMeans(df_mw[majors[[1]],])
+DSC = colMeans(df_mw[majors[[2]],])
+STATS = colMeans(df_mw[majors[[3]],])
+Other = colMeans(df_mw[majors[[4]],])
+
+df_mwcd = rbind(IDSE, DSC, STATS, Other)
+df_mwbymajor = data.frame(from = rep(rownames(df_mwcd), times = ncol(df_mwcd)), to = rep(colnames(df_mwcd), each = nrow(df_mwcd)),
+                value = as.vector(df_mwcd),
+                stringsAsFactors = FALSE)
+grid.col = NULL
+grid.col[unique(df_mwbymajor$to)] = 'grey'
+grid.col[unique(df_mwbymajor$from)] = c('red', 'blue', 'yellow', 'green')
+chordDiagram(df_mwbymajor, grid.col = grid.col)
+```
+
+So the chord diagram for program to skills is created. Each degree has a corresponding arc in the circle and each chord (the colorful thick lines inside the circle) connects a proportion of students in each program to their corresponding each skill.
+
+
+#### Visualization of skill-skill relationship
+Then we further transformed the dataset for creating a new chord diagram showing the relationship skill-skill relationship.
+```{r, fig.align='center', fig.height=6, fig.width=6, echo=FALSE, warning = FALSE, message=FALSE}
+df_mwskillset = data.frame(matrix(rep(0,dim(df_mw)[2] * dim(df_mw)[2]), nrow=dim(df_mw)[2], ncol=dim(df_mw)[2]))
+colnames(df_mwskillset) = colnames(df_mw)
+rownames(df_mwskillset) = colnames(df_mw)
+sk_list = colnames(df_mw)
+for(i in 1:dim(df_mw)[1]) {
+  for(j in 1:dim(df_mw)[2]) {
+    for(k in 1:j) {
+      if((df_mw[i, j] == 1 && df_mw[i, k] == 1) && (sk_list[j] != sk_list[k])) {
+        df_mwskillset[j, k] = df_mwskillset[j, k] + 1
+        # Set weight between same skill (Matlab, Matlab) as 0
+      }
+    }
+  }
+}
+
+df_mwbyskill = data.frame(from = rep(rownames(df_mwskillset), times = ncol(df_mwskillset)), to = rep(colnames(df_mwskillset), each = nrow(df_mwskillset)), value = as.vector(unlist(df_mwskillset)), stringsAsFactors = FALSE)
+grid.col = NULL
+grid.col[sk_list] = 1:length(sk_list)
+chordDiagram(df_mwbyskill, grid.col = grid.col)
+```
+
+
+
+##Differences between Programs - Experience with Tools
+
+We created a visualization that shows the information of experience with tools across majors. The visualization is called radar plot. It will help us to compare majors through the difference in experience with tools. The graph will show for each tool what is the proportion of people who know how to use the tool. 
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
+unique_majors = unique(df_clean$Program)
+
+```
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
+#these are the top five tools defined in the random forest
+important_skills = c("Python", "Github", "google drive (formerly docs)", "Matlab", "ggplot2")
+```
+Now separate majors and do some calculation over the skills
+```{r, echo=FALSE, warning = FALSE, message=FALSE}
+
+separate_major <- function(survey){
+  MSDS = which(survey$Program == "MS_DS")
+  Other = which(survey$Program == "Others")
+  DSC = which(survey$Program == "Certificate_DS")
+  STATS = which(survey$Program == "MA_Stat")
+  a = list(MSDS, STATS, Other, DSC)
+  return(a) 
+}
+attempt = separate_major(df_clean)
+
+
+#col.list is the list of skills, skill is the output of function skill_distri, then skill[[1]] is the ratio of people who know the skill, skill[[2]] is number of people who know the skill, skill[[3]] is the number of people who do not know the skill
+skill_distri <- function(major, col.list){
+  total_num = dim(major)[1]
+  skills_ratio = c()
+  skill_count = c()
+  differ = c()
+  #among the people of the same major, the ratio of people who have a skill
+  for (i in 1:length(col.list)){
+    #print(col.list[i])
+    num = sum(major[,col.list[i]])
+    ratio = num/total_num
+    diff = total_num - num
+    skills_ratio = c(skills_ratio, ratio)
+    skill_count = c(skill_count, num)
+    differ = c(differ, diff)
+  }
+  return(list(skills_ratio, skill_count, differ))
+}
+
+
+MSDS = df_clean[attempt[[1]],]
+MSDS_Skills = skill_distri(MSDS, important_skills)
+MSDS_result = data.frame(rbind(MSDS_Skills[[2]], MSDS_Skills[[3]]))
+colnames(MSDS_result) = important_skills
+
+
+STATS = df_clean[attempt[[2]],]
+STATS_Skills = skill_distri(STATS, important_skills)
+STATS_result = data.frame(rbind(STATS_Skills[[2]], STATS_Skills[[3]]))
+colnames(STATS_result) = important_skills
+
+DSC = df_clean[attempt[[4]],]
+DSC_Skills = skill_distri(DSC, important_skills)
+DSC_result = data.frame(rbind(DSC_Skills[[2]], DSC_Skills[[3]]))
+colnames(DSC_result) = important_skills
+
+```
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center', fig.width= 12}
+
+webplot = function(data, data.row = NULL, y.cols = NULL, main = NULL, add = F, 
+    col = "red", lty = 1, scale = T) {
+    if (!is.matrix(data) & !is.data.frame(data)) 
+        stop("Requires matrix or data.frame")
+    if (is.null(y.cols)) 
+        y.cols = colnames(data)[sapply(data, is.numeric)]
+    if (sum(!sapply(data[, y.cols], is.numeric)) > 0) {
+        out = paste0("\"", colnames(data)[!sapply(data, is.numeric)], "\"", 
+            collapse = ", ")
+        stop(paste0("All y.cols must be numeric\n", out, "are not numeric"))
+    }
+    if (is.null(data.row)) #plot the data of the first row
+        data.row = 1
+    if (is.character(data.row)) 
+        if (data.row %in% rownames(data)) {
+            data.row = which(rownames(data) == data.row)
+        } else {
+            stop("Invalid value for data.row:\nMust be a valid rownames(data) or row-index value")
+        }
+    if (is.null(main)) 
+        main = rownames(data)[data.row]
+    if (scale == T) {
+        #data = scale(data[, y.cols])
+        #data = apply(data, 2, function(x) x/max(abs(x)))
+        data = apply(data, 2, function(x) x/sum(abs(x))) #dataframe$col/sum(dataframe$col) = each element divided by the sum of corresponding column
+    }
+    data = as.data.frame(data)
+    n.y = length(y.cols)
+    min.rad = 360/n.y
+    #polar.vals = (90 + seq(0, 360, length.out = n.y + 1)) * pi/180
+    polar.vals = (90 + seq(0, 360, length.out = n.y + 1)) * pi/180
+
+    # 
+    if (add == F) {
+        plot(0, xlim = c(-2.2, 2.2), ylim = c(-2.2, 2.2), type = "n", axes = F, 
+            xlab = "", ylab = "", asp = 1)
+        title(main)
+        lapply(polar.vals, function(x) lines(c(0, 2 * cos(x)), c(0, 2 * sin(x))))
+        lapply(1:n.y, function(x) text(2.15 * cos(polar.vals[x]), 2.15 * sin(polar.vals[x]), 
+            y.cols[x], cex = 0.8))
+
+        #lapply(seq(0.5, 2, 0.5), function(x) lines(x * cos(seq(0, 2 * pi, length.out = 100)), 
+        #    x * sin(seq(0, 2 * pi, length.out = 100)), lwd = 0.5, lty =2, col = "gray60"))
+        #lines(cos(seq(0, 2 * pi, length.out = 100)), sin(seq(0, 2 * pi, length.out = 100)), 
+        #    lwd = 1.2, col = "gray50")
+        
+        lapply(seq(0.5, 2, 0.5), function(x) lines(x * cos(seq(0, 2 * pi, length.out = 100)), 
+            x * sin(seq(0, 2 * pi, length.out = 100)), lwd = 0.5, lty = 2, col = "gray60"))
+        lines(cos(seq(0, 2 * pi, length.out = 100)), sin(seq(0, 2 * pi, length.out = 100)), 
+            lwd = 0.5, lty = 2, col = "gray50")
+    }
+
+
+    r = 1 + data[data.row, y.cols]
+    xs = r * cos(polar.vals)
+    ys = r * sin(polar.vals)
+    xs = c(xs, xs[1])
+    ys = c(ys, ys[1])
+
+    lines(xs, ys, col = col, lwd = 2, lty = lty)
+
+}
+
+par(mar = c(1, 1, 2, 1))
+par(mfrow=c(1,2))
+webplot(MSDS_result, main = "Data Science VS Stats")
+webplot(STATS_result, add = T, col = "blue", lty = 2)
+par(new = T)
+par(mar = c(0, 0, 0, 0))
+plot(0, type = "n", axes = F)
+legend("bottomright", lty = c(1, 2), lwd = 2, col = c("red", "blue"), c("MS.Data Science", 
+    "Stats"), bty = "n")
+
+
+par(mar = c(1, 1, 2, 1))
+webplot(MSDS_result, main = "Data Science Master VS Certificate")
+webplot(DSC_result, add = T, col = "blue", lty = 2)
+par(new = T)
+par(mar = c(0, 0, 0, 0))
+plot(0, type = "n", axes = F)
+legend("bottomright", lty = c(1, 2), lwd = 2, col = c("red", "blue"), c("MS.Data Science", 
+    "DS certificate"), bty = "n")
+
+```
+radar plot ref : http://www.statisticstoproveanything.com/2013/11/spider-web-plots-in-r.html
+
+There are two plots made. One compares Stats with Data Science and the other compares the Data Science master with Data Science certificates. We chose these these majors because the majority of people are in these majors. We can compare as many majors as we want if needed. We chose the top five tools identified in the random forest classifier we made for classifying majors. On the plot the further the line is from the center, the larger the proportion of people who know how to use the tool. The range for variables is from 0 to 1 (proportion). We can clearly see that the patterns for Stats and Data Science are different. The pattern for Data Science master is similar to the pattern for Data Science certificates. These results show that Stats students are different from Data Science student on experience with tools. While Data Science students' experience with tools is similar to that of Data Science certificate students. Also, we can use this kind of plot to see what are people from different majors good at.
+
+
+
+
+##Decision Trees
+We will now look at a decision tree to try and understand if we have the ability to predict what program a student is in only the student's experience with the software programs and tools listed in the survey.
+
+A decision tree was chosen because the intrepetability is high and can give us some insight into what categories help create the purest subgroups using the Gini Index
+
+The training set is set to 80% of the given data and attempt to predict on the remaining 20% to get an idea of how this prediction algorithm might perform. We will also change the randomness of the selection of the training set by using `set.seed()`. This will allow us to see how high the variance might be for the tree. If the tree greatly changes based on different training sets we are experiencing a high variance. 
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center', fig.width=12}
+#Renaming the columnbs because of issues with speicific characterswithin the column names.
+col.list2 = c("Matlab", "R", "Github", "Excel", "SQL", "RStudio", "ggplot2", "shell", "C", "Python", "Stata", "LaTeX", "XML", "Web", "google_drive", "knitr","dropbox", "SPSS", "reg_ex", "lattice" )
+colnames(df_clean) = c(colnames(df_clean)[1:11], col.list2)
+
+par(mfrow=c(2, 2))
+
+for(i in c(1:4)){
+  #Set random seed so that we do introduce any bias
+  set.seed(i)
+  train_in = sample(c(1:nrow(df_clean)), floor(0.8*nrow(df_clean)))
+  #Training Set
+  train = df_clean[train_in,]
+  #Test Set
+  test = df_clean[-train_in,]
+  
+  #Fit the model using all variables 
+  fit <- rpart(Program ~ Matlab+R+Github+Excel+SQL+RStudio+ggplot2+shell+C+Python+Stata+LaTeX+XML+Web+google_drive+knitr+dropbox+SPSS+reg_ex+lattice, data=train, method = "class")
+  
+  #Create prediction
+  pred <- predict(fit, newdata=test, type = "class")
+  predictions =   predict(fit, test,type = "class")
+  percent_correct = sum(predictions==test$Program)/length(test$Program)
+  
+  
+  main_title = paste("Decision Tree\n Random Seed = ", i,"\nPercent Correct:", round(percent_correct*100,2))
+  
+  prp(fit, min.auto.cex	= 0.1, varlen = 100,main = "")
+  title(main = main_title, cex.main = 1)
+}
+
+```
+</br>
+We can see from the training data the tree has selected "dropbox" for the first split in all four cases. While hte trees are not necessarily performing well we can see that the trees have changed after the first split in every case. This signifies a model experiencing high variance. One way we can work to bring the variance down is using Random Forests, which will randomly select the first split over many decision trees and use a voting process to determine classification. This voting process will decrease the variance that we are currently seeing and should improve overall performance. We will see a benefit as long as the decrease in variance is greater than the increase in bias that will be experienced. 
+
+Because of the small dataset Random Forests trains very quickly so we can run multiple training attempts very quickly. We will look at a range of trees to use in the random forest and see how it performs. Random Forests have the a trade off of higher accuracy but harder interpretation than typical Decision Trees. 
+
+For the following we will look at accuracy and Importance. Where the imporatnace calculated using the mean decrease in the Gini Index over all of the trees. In more simple terms these graphs show the most important variable that causes the purist division within the data.
+
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center',fig.width=12, fig.height=8}
+par(mfrow=c(2, 2))
+for(i in c(1:4)){
+  #Set random seed so that we do introduce any bias
+  set.seed(i)
+  
+  train_in = sample(c(1:nrow(df_clean)), floor(0.8*nrow(df_clean)))
+  #Training Set
+  train = df_clean[train_in,]
+  #Test Set
+  test = df_clean[-train_in,]
+  
+  train$Program = factor(train$Program)
+  #test$Program = factor(test$Program, levels=levels(train$Program))
+  test$Program = factor(test$Program)
+  formulatest = formula("Program ~ Matlab+R+Github+Excel+SQL+RStudio+ggplot2+shell+C+Python+Stata+LaTeX+XML+Web+google_drive+knitr+dropbox+SPSS+reg_ex+lattice")
+  
+  #set.seed(1)
+  rf = randomForest(formulatest,data=train,ntree=200)
+  
+  output_rf = importance(rf)
+  x = (row.names(output_rf))
+  y = as.numeric(output_rf)
+  pdf = data.frame(cbind(x,y))
+  pdf$y = as.numeric(pdf$y)
+  pdf$x <- factor(pdf$x, levels = pdf$x[order(pdf$y)])
+  #pdf = pdf[order(pdf$y, decreasing = TRUE),]
+  #rownames(pdf) = c(1:nrow(pdf))
+  
+  output = predict(rf, test, type = "response", na.action(na.omit))
+  percent_correct = sum(as.character(output) == as.character(test$Program))/nrow(test)
+  title = paste("Random Forest - Importance\n Percent Correct: ", percent_correct, "\n Set Seed = ",i)
+  
+  a = ggplot(data = pdf,aes(x = reorder(x, -y), y = y)) + 
+    geom_bar(stat='identity',aes(x, fill=y)) + 
+    coord_flip() + 
+    guides(fill=FALSE) + 
+    ggtitle(title)+
+    theme(plot.title = element_text(size=10)) + 
+    xlab("Skill") + 
+    ylab("Importance")
+  nam <- paste("A", i, sep = "")
+  assign(nam, a)
+}
+
+grid.arrange(A1,A2,A3,A4,ncol=2)
+```
+
+Overall we can see a increase in the performance of the predictions with different trees. While we saw a decrease in when `set.seed() = 1` for all of the other case we saw an increase as expected. Most likely if we were to recieve more training data we could expect to improve on our prediction. On average over this small training set we were 52.17% accurate. 
+
+To understand how we did we can look at the percentages of all of the majors
+```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center'}
+
+degree_percent = summary(df_clean$Program)/nrow(df_clean)
+pl_df = data.frame(degree_percent)
+pl_df$x = rownames(pl_df)
+
+rownames(pl_df) =c(1:nrow(pl_df)) 
+colnames(pl_df) = c("percent","x")
+pdf$y <- factor(pl_df$x, levels = pl_df$x[order(pl_df$percent)])
+
+ggplot(data = pl_df,aes(x = x, y = percent,fill=x))+  
+  geom_bar(stat = "identity")+
+  coord_flip() + 
+  ggtitle("Percentage of Students within each Program")+
+  xlab("Percentage") +
+  ylab("Degree Program")+
+  guides(fill = FALSE)
+```
+
+Overall the largest major within the class is IDSE (master) at 50%. So if we just consistently guessed IDSE we could still do fairly well. The Random Forest only did slightly better at 52.17% on average.
+
+Looking into decision trees helped us gain a better understanding of what factors might help differentiate the programs. We saw consistently that dropbox seemed to play the largest factor in how our algorithm determined which student belonged to which program. However even with 200 trees in the Random forest we still saw the importance ranking change, suggesting our data is still very spread and has a high variance. This is where more data could help the performance.
+
+##Conclusion
+Overall within this document we explored many relationships between Program and Skillset. We were able to take multiple views of the data and begin to understand the complex relationships that occur between skill and Program. This helped us gain a better understanding of the distribution of the class and how the different divisions of programs correlate with different skills.
+
+
