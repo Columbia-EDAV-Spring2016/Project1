@@ -163,7 +163,7 @@ This plot reflects the joint distributions of the proficiency of skills and the 
 
 
 ##Network graph on percentage of having each skill
-Each vertex represents a skill. The vertex label shows the name of the skill and the percentage of students who chose each skill from the entire students. The higher the percentage is, the bigger the vertex is. The color of vertex represents the area of the skill. We classified each skill in to three areas: Computer Science (Yellow), Statistics (Blue), and General (Green). 
+Each vertex represents a skill. The vertex label shows the name of the skill and the percentage of students who chose each skill from the entire students. The higher the percentage is, the bigger the vertex is. The color of vertex represents the area of the skill. We classified each skill into three areas: Computer Science (Yellow), Statistics (Blue), and General (Green). 
 
 Edge (A->B) show that knowing that the student chose a skill – A, he has higher probability of also having skill B. For example, the probability of a student having SQL is 49%, but when we know that the student chose web, the probability of the student also having SQL is 88%. 
 We set a threshold of 20, to only show bigger differences. For example, percentage of students who chose RStudio is 76%, and percentage of students who chose RStudio among who chose R is 90%. Even though 90% looks very high, because the difference of percentage is 14%, that doesn’t show on this graph.
