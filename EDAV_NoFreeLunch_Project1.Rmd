@@ -2,7 +2,7 @@
 title: "Investigation of EDAV Skills and Programs"
 author: "Team - No Free Lunch"
 date: "February 11, 2016"
-output: html_document
+output: pdf_document
 ---
 ## Project Description
 Within this document we will be showing multiple visualizations and explanations of skills that the Spring EDAV 2016 class have. We begin with intial plots to gain an understanding of what the population of the class looks like and then work towards more complex views of similar subjects. In the end we will work to attempt at predicting the program of a test group of students by looking at their skill attributes. 
@@ -164,20 +164,6 @@ ggplot(mydata, aes(x=num_skills, y=prof_skills)) + stat_density2d(aes(colour = .
 This plot reflects the joint distributions of the proficiency of skills and the number of skills in different student groups. Contour lines represent density of this distribution. From this joint perspective we can see that the distributions of Data Science Certificate students and Data Science Masters(MS_DS) have larger density around "peak" than other two groups.
 
 ##Network graph on percentage of having each skill
-
-This graph shows the information about percentage of students who chose each skill. 
-
-Each vertex represents a skill. The vertex label shows the name of the skill and the percentage of students who chose each skill from the entire students. The higher the percentage is, the bigger the vertex is. The color of vertex represents the area of the skill. We classified each skill into three areas: Computer Science (Yellow), Statistics (Blue), and General (Green). 
-
-Edge (A->B) show that knowing that the student chose a skill – A, he has higher probability of also having skill B. For example, the probability of a student having SQL is 49%, but when we know that the student chose web, the probability of the student also having SQL is 88%. 
-We set a threshold of 20, to only show bigger differences. For example, percentage of students who chose RStudio is 76%, and percentage of students who chose RStudio among who chose R is 90%. Even though 90% looks very high, because the difference of percentage is 14%, that doesn’t show on this graph.
-
-Another interesting characteristic is that the rare skills (represented by smaller vertex sizes) such as Sweave_knitr, lattice, and Regular expression have thicker edges with many other skills. A possible explanation is that these skills are rare because they are more advanced skills. Then, it makes sense for a student who have advanced skills to have many other skills as well.
-
-We can also see that skills in same area tend to have more number of edges among them. However, in case of general skills – Google Drive, Dropbox, Github, and LaTeX, they seem to have stronger relationships with computer science skills then statistics skills. This makes sense, because students with computer science background tend to use these type of skills more often than others. 
-
-In case of Python, it has strong relationship only with lattice. This might be because the majority of students are data science masters and data science certification, and majority of them took algorithm class last semester, where they used Python. I think because majority of students used Python regardless of their previous experience or background, Python didn’t show any strong relationship with other skill.
-
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
 # Modified skill names
 sk_list =c("Matlab", "R", "Github", "Excel", "SQL", 
@@ -263,7 +249,6 @@ for(sk1 in sk_list) {
 
 ```
 
-
 ```{r, echo=FALSE, warning = FALSE, message=FALSE, fig.align='center', fig.height=8, fig.width=8}
 
 fradj = as.matrix(sk_dif)
@@ -304,6 +289,23 @@ plot.igraph(frnet, layout=node_layout, edge.arrow.size = 1,edge.arrow.width = 1.
             edge.width = E(frnet)$weight/15, edge.label = E(frnet)$weight)
 
 ```
+
+This graph shows the information about percentage of students who chose each skill and the relationship among skills. 
+
+Each vertex represents a skill. The vertex label shows the name of the skill and the percentage of students who chose each skill among all students. The size of a vertex represents the percentage of students who chose it. So, the higher the percentage is, the bigger the vertex is. The color of vertex represents the area of the skill; we classified each skill into three areas: Computer Science (Yellow), Statistics (Blue), and General (Green).
+
+Edges represent the positive relationships among skills. For example, the probability of a student in this class knowing SQL is 49% (represented by the number on SQL vertex), but among the students who reported Web as a skill, the probability of also knowing SQL is 88% (represented by the label of the Web->SQL edge). This can be written as Pr(SQL|Web) - Pr(SQL) = 88% - 49% = 39%. We can say that students who know Web skills have a higher probability of also knowing SQL than the overall probability of knowing SQL in this class.
+
+So, each edge A->B shows the probability Pr(B|A) as labels in percentage unit. The thickness of edge width graphically shows how high the Pr(B|A) is. The thicker the edge is, the higher the Pr(B|A) is. Note that the relationships among skills are not symmetric, because Pr(B|A) - Pr(B) is not necessarily the same as Pr(A|B) - Pr(A).
+
+We only show the strong and positive relationships where Pr(B|A) - Pr(B) > 20%. For example, the percentage of students who chose RStudio is 76%, while the percentage of students who chose RStudio among whom chose R is 90%. The difference between these two probabilities (Pr(RStudio|R) - Pr(RStudio)) is 14%. So, even though 90% seems very high, because the difference is smaller than the threshold (20%), there is no edge from R to RStudio in this graph. Even though it wasn't shown on the graph, it is interesting to know that only 90% of students who chose R also chose RStudio. We can guess that they probably have used R console or other text editor.
+
+By looking at edges focusing on vertex colors, we can see that skills in the same skill area (e.g., Computer Science) tend to have more edges among them than between different area skills. General skills such as Google Drive and Dropbox seem to have stronger relationships with Computer Science skills (Yellow vertices) than Statistics skills (Blue vertices). This may be because students with computer science background tend to use these skills more often than students with other background.
+
+Another interesting characteristic is that rare skills (represented by smaller vertex sizes) such as Sweave_knitr, lattice, and Regular expression have relatively thick edges with many other skills. A possible explanation is that these skills are rare because they are more advanced skills, and it makes sense for students who have advanced skills to have many other skills as well.
+
+In the case of Python, it has strong relationship only with lattice. This might be because the majority of students are data science masters and data science certificate students, and the majority of them took an algorithm class last semester where they used Python. So we think Python did not show any strong relationships with other skills, because the majority of data science students used Python regardless of their previous experience or background.
+
 
 \newpage
 
@@ -386,14 +388,10 @@ We created a visualization that shows the information of experience with tools a
 
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
 unique_majors = unique(df_clean$Program)
-
-```
-
-```{r, echo=FALSE, warning = FALSE, message=FALSE}
 #these are the top five tools defined in the random forest
 important_skills = c("Python", "Github", "google drive (formerly docs)", "Matlab", "ggplot2")
 ```
-Now separate majors and do some calculation over the skills
+
 ```{r, echo=FALSE, warning = FALSE, message=FALSE}
 
 separate_major <- function(survey){
